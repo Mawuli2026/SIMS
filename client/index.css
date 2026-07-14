@@ -1,0 +1,69 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+    width: 100%;
+    min-height: 100%;
+}
+
+body {
+    margin: 0;
+    background: #f9fafb;
+    color: #1f2937;
+    font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+button {
+    cursor: pointer;
+}
+
+/* Print Styles */
+@media print {
+    body {
+        background: white;
+    }
+
+    .print\:hidden {
+        display: none !important;
+    }
+
+    .shadow {
+        box-shadow: none !important;
+    }
+
+    /* Optional: Additional print optimizations */
+    .no-print {
+        display: none !important;
+    }
+
+    /* Ensure content fits on page */
+    .print\:page-break {
+        page-break-after: always;
+    }
+
+    /* Remove backgrounds and text colors for print */
+    * {
+        background: transparent !important;
+        color: black !important;
+        text-shadow: none !important;
+        box-shadow: none !important;
+    }
+
+    /* Ensure table borders print properly */
+    table,
+    th,
+    td {
+        border: 1px solid #ccc !important;
+    }
+}

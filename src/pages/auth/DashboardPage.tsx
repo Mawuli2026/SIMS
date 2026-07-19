@@ -2,6 +2,11 @@ import { Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../../components/auth/dashboard/DashboardLayout";
 import AdminDashboard from "../../components/auth/dashboard/AdminDashboard";
 import CashierDashboard from "../../components/auth/dashboard/CashierDashboard";
+import ProductManagement from "../../components/auth/dashboard/ProductManagement";
+import SalesCart from "../../components/auth/dashboard/SalesCart";
+import ReceiptPage from "../../components/auth/dashboard/ReceiptPage";
+import SalesHistory from "../../components/auth/dashboard/SalesHistory";
+import ReportsPage from "../../components/auth/dashboard/ReportsPage";
 import { UserProfile } from "../../types/dashboard.types";
 
 const getStoredUser = (): UserProfile | null => {
@@ -39,17 +44,28 @@ const DashboardPage = () => {
 
   if (!canAccessRoute) return <Navigate replace to="/dashboard" />;
 
+  const renderContent = () => {
+    if (isDashboardHome) return user.role === "Admin" ? <AdminDashboard /> : <CashierDashboard />;
+    if (location.pathname === "/dashboard/products") return <ProductManagement />;
+    if (location.pathname === "/dashboard/low-stock") return <ProductManagement lowStockOnly />;
+    if (location.pathname === "/dashboard/sales") return <SalesCart user={user} />;
+    if (location.pathname === "/dashboard/sales-history") return <SalesHistory user={user} />;
+    if (location.pathname === "/dashboard/reports") return <ReportsPage />;
+    if (location.pathname.startsWith("/dashboard/receipts/")) {
+      const saleId = Number(location.pathname.split("/").pop());
+      return <ReceiptPage saleId={saleId} />;
+    }
+
+    return <section className="dashboard-panel module-placeholder">
+      <p className="eyebrow">SIMS module</p>
+      <h1>{location.pathname.split("/").pop()?.replace(/-/g, " ")}</h1>
+      <p>This area is ready for the next SIMS feature implementation.</p>
+    </section>;
+  };
+
   return (
     <DashboardLayout user={user} role={user.role}>
-      {isDashboardHome ? (
-        user.role === "Admin" ? <AdminDashboard /> : <CashierDashboard />
-      ) : (
-        <section className="dashboard-panel module-placeholder">
-          <p className="eyebrow">SIMS module</p>
-          <h1>{location.pathname.split("/").pop()?.replace(/-/g, " ")}</h1>
-          <p>This area is ready for the next SIMS feature implementation.</p>
-        </section>
-      )}
+      {renderContent()}
     </DashboardLayout>
   );
 };

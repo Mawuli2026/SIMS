@@ -4,6 +4,7 @@ import {
   LowStockProduct,
   RecentSale,
 } from "../../../types/dashboard.types";
+import { formatCurrency } from "../../../utils/currency";
 
 const AdminDashboard = () => {
   const summary: DashboardSummary = {
@@ -53,7 +54,7 @@ const AdminDashboard = () => {
       <div className="dashboard-grid">
         <DashboardCard
           title="Today's Sales"
-          value={`GHS ${summary.todaySales?.toFixed(2)}`}
+          value={formatCurrency(summary.todaySales ?? 0)}
           subtitle="Total revenue today"
           type="primary"
         />
@@ -99,7 +100,7 @@ const AdminDashboard = () => {
                 <tr key={sale.saleId}>
                   <td>#{sale.saleId}</td>
                   <td>{sale.cashierName}</td>
-                  <td>GHS {sale.totalAmount.toFixed(2)}</td>
+                  <td>{formatCurrency(sale.totalAmount)}</td>
                   <td>{sale.createdAt}</td>
                 </tr>
               ))}

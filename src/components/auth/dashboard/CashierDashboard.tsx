@@ -1,6 +1,7 @@
 import DashboardCard from "./DashboardCard";
 import { Link } from "react-router-dom";
 import { DashboardSummary, RecentSale } from "../../../types/dashboard.types";
+import { formatCurrency } from "../../../utils/currency";
 
 const CashierDashboard = () => {
   const summary: DashboardSummary = {
@@ -31,7 +32,7 @@ const CashierDashboard = () => {
       <div className="dashboard-grid cashier-grid">
         <DashboardCard
           title="My Sales Today"
-          value={`GHS ${summary.mySalesToday?.toFixed(2)}`}
+          value={formatCurrency(summary.mySalesToday ?? 0)}
           subtitle="Your total sales today"
           type="primary"
         />
@@ -67,7 +68,7 @@ const CashierDashboard = () => {
             {recentSales.map((sale) => (
               <tr key={sale.saleId}>
                 <td>#{sale.saleId}</td>
-                <td>GHS {sale.totalAmount.toFixed(2)}</td>
+                <td>{formatCurrency(sale.totalAmount)}</td>
                 <td>{sale.createdAt}</td>
                 <td>
                   <Link className="table-link" to={`/dashboard/receipts/${sale.saleId}`}>

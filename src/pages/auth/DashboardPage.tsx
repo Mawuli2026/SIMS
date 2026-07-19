@@ -45,7 +45,7 @@ const DashboardPage = () => {
   if (!canAccessRoute) return <Navigate replace to="/dashboard" />;
 
   const renderContent = () => {
-    if (isDashboardHome) return user.role === "Admin" ? <AdminDashboard /> : <CashierDashboard />;
+    if (isDashboardHome) return user.role === "Admin" ? <AdminDashboard /> : <CashierDashboard user={user} />;
     if (location.pathname === "/dashboard/products") return <ProductManagement />;
     if (location.pathname === "/dashboard/low-stock") return <ProductManagement lowStockOnly />;
     if (location.pathname === "/dashboard/sales") return <SalesCart user={user} />;

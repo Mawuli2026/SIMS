@@ -1,26 +1,17 @@
 import DashboardCard from "./DashboardCard";
 import { Link } from "react-router-dom";
-import { DashboardSummary, RecentSale } from "../../../types/dashboard.types";
+import { UserProfile } from "../../../types/dashboard.types";
 import { formatCurrency } from "../../../utils/currency";
+import { loadSales } from "../../../utils/saleStorage";
 
-const CashierDashboard = () => {
-  const summary: DashboardSummary = {
-    mySalesToday: 600,
-    mySalesCountToday: 10,
-  };
+interface CashierDashboardProps { user: UserProfile; }
 
-  const recentSales: RecentSale[] = [
-    {
-      saleId: 2001,
-      totalAmount: 75,
-      createdAt: "Today, 10:30 AM",
-    },
-    {
-      saleId: 2002,
-      totalAmount: 55,
-      createdAt: "Today, 11:10 AM",
-    },
-  ];
+const CashierDashboard = ({ user }: CashierDashboardProps) => {
+  const mySales = loadSales().filter((sale) => sale.cashierEmail.toLowerCase() === user.email.toLowerCase());
+  const today = new Date().toDateString();
+  const todaysSales = mySales.filter((sale) => new Date(sale.createdAt).toDateString() === today);
+  const mySalesToday = todaysSales.reduce((total, sale) => total + sale.totalAmount, 0);
+  const recentSales = mySales.slice(0, 5);
 
   return (
     <div>
@@ -32,14 +23,14 @@ const CashierDashboard = () => {
       <div className="dashboard-grid cashier-grid">
         <DashboardCard
           title="My Sales Today"
-          value={formatCurrency(summary.mySalesToday ?? 0)}
+          value={formatCurrency(mySalesToday)}
           subtitle="Your total sales today"
           type="primary"
         />
 
         <DashboardCard
           title="My Sales Count"
-          value={summary.mySalesCountToday || 0}
+          value={todaysSales.length}
           subtitle="Sales you completed today"
           type="success"
         />
@@ -65,18 +56,21 @@ const CashierDashboard = () => {
           </thead>
 
           <tbody>
-            {recentSales.map((sale) => (
-              <tr key={sale.saleId}>
-                <td>#{sale.saleId}</td>
+              {recentSales.map((sale) => (
+              <tr key={sale.id}>
+                <td>{sale.receiptNumber}</td>
                 <td>{formatCurrency(sale.totalAmount)}</td>
-                <td>{sale.createdAt}</td>
+                <td>{new Date(sale.createdAt).toLocaleString()}</td>
                 <td>
-                  <Link className="table-link" to={`/dashboard/receipts/${sale.saleId}`}>
+                  <Link className="table-link" to={`/dashboard/receipts/${sale.id}`}>
                     View Receipt
                   </Link>
                 </td>
               </tr>
             ))}
+            {recentSales.length === 0 && (
+              <tr><td colSpan={4} className="empty-table">No completed sales yet. Record a sale to see it here.</td></tr>
+            )}
           </tbody>
         </table>
       </section>

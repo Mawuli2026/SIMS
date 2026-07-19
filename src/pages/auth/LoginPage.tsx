@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/auth/AuthLayout';
 import PasswordInput from '../../components/auth/PasswordInput';
 import LoadingButton from '../../components/auth/LoadingButton';
@@ -7,6 +7,7 @@ import { isValidEmail } from '../../utils/validation';
 import { LoginFormValues } from '../../types/auth.types';
 
 const LoginPage: React.FC = () => {
+  const navigate = useNavigate();
   const [formValues, setFormValues] = useState<LoginFormValues>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -40,11 +41,25 @@ const LoginPage: React.FC = () => {
 
     await new Promise((resolve) => setTimeout(resolve, 1200));
 
+    const normalizedEmail = formValues.email.trim().toLowerCase();
+    const role = normalizedEmail.includes('admin') ? 'Admin' : 'Cashier';
+    const fullName = role === 'Admin' ? 'Alicia Ng' : 'Marcus Cole';
+
+    window.localStorage.setItem(
+      'sims-auth-user',
+      JSON.stringify({
+        fullName,
+        email: normalizedEmail,
+        role,
+        dateJoined: '2024-01-15',
+      })
+    );
+
     setIsLoading(false);
-    alert('Login successful — dashboard access granted by role.');
     setFormValues({ email: '', password: '' });
     setErrors({});
     setShowPassword(false);
+    navigate('/dashboard');
   };
 
   return (

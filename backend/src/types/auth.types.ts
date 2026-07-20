@@ -9,6 +9,16 @@ export interface RegisterRequest {
   confirmPassword: string;
 }
 
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AuthTokenPayload {
+  sub: string;
+  role: UserRole;
+}
+
 export interface UserRow {
   id: number;
   first_name: string;
@@ -26,4 +36,9 @@ export interface PublicUser {
   email: string;
   role: UserRole;
   createdAt: Date;
+}
+
+export interface LoginResult {
+  token: string;
+  user: PublicUser;
 }

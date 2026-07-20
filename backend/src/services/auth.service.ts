@@ -1,6 +1,7 @@
 import { query } from "../config/db";
-import { PublicUser, RegisterRequest, UserRow } from "../types/auth.types";
-import { hashPassword } from "../utils/password";
+import { LoginRequest, LoginResult, PublicUser, RegisterRequest, UserRow } from "../types/auth.types";
+import { comparePassword, hashPassword } from "../utils/password";
+import { generateAuthToken } from "../utils/token";
 
 export class AuthServiceError extends Error {
   constructor(message: string, public readonly statusCode: number) {
@@ -39,4 +40,23 @@ export const registerUser = async (input: RegisterRequest): Promise<PublicUser> 
     }
     throw error;
   }
+};
+
+export const loginUser = async (input: LoginRequest): Promise<LoginResult> => {
+  const email = input.email.trim().toLowerCase();
+  const result = await query<UserRow>(
+    `SELECT id, first_name, last_name, email, password_hash, role, created_at
+     FROM users
+     WHERE email = $1
+     LIMIT 1`,
+    [email],
+  );
+  const user = result.rows[0];
+
+  if (!user || !(await comparePassword(input.password, user.password_hash))) {
+    throw new AuthServiceError("Invalid email or password.", 401);
+  }
+
+  const publicUser = toPublicUser(user);
+  return { token: generateAuthToken(publicUser), user: publicUser };
 };

@@ -12,4 +12,9 @@ export const registerSchema = z.object({
   path: ["confirmPassword"],
 });
 
+export const loginSchema = z.object({
+  email: z.string().trim().min(1, "Email address is required.").email("Email address must be valid."),
+  password: z.string().min(1, "Password is required."),
+});
+
 export const firstValidationError = (error: z.ZodError) => error.issues[0]?.message ?? "Invalid request data.";

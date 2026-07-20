@@ -34,4 +34,11 @@ app.use((error: Error, _request: Request, response: Response, _next: NextFunctio
   response.status(500).json({ message: "Internal server error." });
 });
 
+app.get("/api/health", (_req, res) => {
+  res.status(200).json({
+    status: "ok",
+    database: "connected",
+  });
+});
+
 export default app;

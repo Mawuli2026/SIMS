@@ -19,6 +19,11 @@ export interface AuthTokenPayload {
   role: UserRole;
 }
 
+export interface AuthenticatedUser {
+  id: number;
+  role: UserRole;
+}
+
 export interface UserRow {
   id: number;
   first_name: string;

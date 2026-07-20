@@ -1,20 +1,26 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/auth/AuthLayout';
 import PasswordInput from '../../components/auth/PasswordInput';
 import LoadingButton from '../../components/auth/LoadingButton';
 import { isValidEmail } from '../../utils/validation';
 import { LoginFormValues } from '../../types/auth.types';
+import { loginAccount } from '../../services/authApi';
+import { saveSession } from '../../utils/authSession';
 
 const LoginPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [formValues, setFormValues] = useState<LoginFormValues>({ email: '', password: '' });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
+  const successMessage = (location.state as { message?: string } | null)?.message;
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormValues({ ...formValues, [event.target.name]: event.target.value });
+    setServerError('');
   };
 
   const validate = () => {
@@ -38,28 +44,17 @@ const LoginPage: React.FC = () => {
     event.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
+    setServerError('');
 
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-
-    const normalizedEmail = formValues.email.trim().toLowerCase();
-    const role = normalizedEmail.includes('admin') ? 'Admin' : 'Cashier';
-    const fullName = role === 'Admin' ? 'Alicia Ng' : 'Marcus Cole';
-
-    window.localStorage.setItem(
-      'sims-auth-user',
-      JSON.stringify({
-        fullName,
-        email: normalizedEmail,
-        role,
-        dateJoined: '2024-01-15',
-      })
-    );
-
-    setIsLoading(false);
-    setFormValues({ email: '', password: '' });
-    setErrors({});
-    setShowPassword(false);
-    navigate('/dashboard');
+    try {
+      const result = await loginAccount(formValues);
+      saveSession(result.token, result.user);
+      navigate('/dashboard', { replace: true });
+    } catch (error) {
+      setServerError(error instanceof Error ? error.message : 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,6 +66,8 @@ const LoginPage: React.FC = () => {
         <p style={styles.subtitle}>Sign in with your email and password to access the dashboard.</p>
       </div>
       <form onSubmit={handleSubmit} noValidate style={styles.form}>
+          {successMessage && <p style={styles.success} role="status">{successMessage}</p>}
+          {serverError && <p style={styles.serverError} role="alert">{serverError}</p>}
           <div style={styles.field}>
             <label htmlFor="email" style={styles.label}>Email address</label>
             <input
@@ -182,6 +179,20 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     marginTop: '8px',
     color: '#DC2626',
+    fontSize: '14px',
+  },
+  success: {
+    padding: '10px 12px',
+    borderRadius: '10px',
+    background: '#DCFCE7',
+    color: '#166534',
+    fontSize: '14px',
+  },
+  serverError: {
+    padding: '10px 12px',
+    borderRadius: '10px',
+    background: '#FEE2E2',
+    color: '#B91C1C',
     fontSize: '14px',
   },
 };

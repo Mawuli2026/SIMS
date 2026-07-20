@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Navigate, useLocation } from "react-router-dom";
 import DashboardLayout from "../../components/auth/dashboard/DashboardLayout";
 import AdminDashboard from "../../components/auth/dashboard/AdminDashboard";
@@ -8,35 +9,48 @@ import ReceiptPage from "../../components/auth/dashboard/ReceiptPage";
 import SalesHistory from "../../components/auth/dashboard/SalesHistory";
 import ReportsPage from "../../components/auth/dashboard/ReportsPage";
 import { UserProfile } from "../../types/dashboard.types";
-
-const getStoredUser = (): UserProfile | null => {
-  try {
-    const storedUser = localStorage.getItem("sims-auth-user");
-    if (!storedUser) return null;
-    const user = JSON.parse(storedUser) as Partial<UserProfile>;
-    if (!user.fullName || !user.email || (user.role !== "Admin" && user.role !== "Cashier")) return null;
-    const names = user.fullName.trim().split(/\s+/);
-
-    return {
-      id: user.id ?? 1,
-      firstName: user.firstName ?? names[0],
-      lastName: user.lastName ?? names.slice(1).join(" "),
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      dateJoined: user.dateJoined ?? new Date().toLocaleDateString(),
-      initial: user.initial ?? user.fullName.charAt(0).toUpperCase(),
-    };
-  } catch {
-    return null;
-  }
-};
+import { ApiError, getCurrentUser } from "../../services/authApi";
+import { clearSession, getAuthToken, getStoredUser, saveSession, toUserProfile } from "../../utils/authSession";
 
 const DashboardPage = () => {
-  const user = getStoredUser();
+  const [user, setUser] = useState<UserProfile | null>(getStoredUser);
+  const [sessionState, setSessionState] = useState<"checking" | "ready" | "invalid" | "error">("checking");
+  const [retryCount, setRetryCount] = useState(0);
   const location = useLocation();
 
-  if (!user) return <Navigate replace to="/login" />;
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      clearSession();
+      setUser(null);
+      setSessionState("invalid");
+      return;
+    }
+
+    let active = true;
+    setSessionState("checking");
+    getCurrentUser(token).then(({ user: apiUser }) => {
+      if (!active) return;
+      saveSession(token, apiUser);
+      setUser(toUserProfile(apiUser));
+      setSessionState("ready");
+    }).catch((error) => {
+      if (!active) return;
+      if (error instanceof ApiError && (error.status === 0 || error.status >= 500)) {
+        setSessionState("error");
+        return;
+      }
+      clearSession();
+      setUser(null);
+      setSessionState("invalid");
+    });
+
+    return () => { active = false; };
+  }, [retryCount]);
+
+  if (sessionState === "checking") return <div className="session-screen" role="status"><span className="session-spinner" />Checking your session...</div>;
+  if (sessionState === "error") return <div className="session-screen"><h1>Unable to verify your session</h1><p>Check your connection and try again.</p><button className="primary-button" type="button" onClick={() => setRetryCount((count) => count + 1)}>Retry</button></div>;
+  if (sessionState === "invalid" || !user) return <Navigate replace to="/login" />;
 
   const isDashboardHome = location.pathname === "/dashboard" || location.pathname === "/dashboard/";
   const cashierRoutes = ["/dashboard/sales", "/dashboard/sales-history", "/dashboard/receipts"];

@@ -1,15 +1,17 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from '../../components/auth/AuthLayout';
 import AuthCard from '../../components/auth/AuthCard';
 import PasswordInput from '../../components/auth/PasswordInput';
 import LoadingButton from '../../components/auth/LoadingButton';
 import { isValidEmail, doPasswordsMatch, isStrongPassword } from '../../utils/validation';
 import { RegisterFormValues, UserRole } from '../../types/auth.types';
+import { registerAccount } from '../../services/authApi';
 
 const roles: UserRole[] = ['Admin', 'Cashier'];
 
 const RegisterPage: React.FC = () => {
+  const navigate = useNavigate();
   const [formValues, setFormValues] = useState<RegisterFormValues>({
     firstName: '',
     lastName: '',
@@ -21,9 +23,11 @@ const RegisterPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [serverError, setServerError] = useState('');
 
   const handleChange = (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormValues({ ...formValues, [event.target.name]: event.target.value });
+    setServerError('');
   };
 
   const validate = () => {
@@ -52,15 +56,22 @@ const RegisterPage: React.FC = () => {
     event.preventDefault();
     if (!validate()) return;
     setIsLoading(true);
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setIsLoading(false);
-    alert('Account created successfully. Please sign in.');
+    setServerError('');
+    try {
+      const result = await registerAccount(formValues);
+      navigate('/login', { replace: true, state: { message: result.message } });
+    } catch (error) {
+      setServerError(error instanceof Error ? error.message : 'Account creation failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <AuthLayout title="Create your account" subtitle="Register as an Admin or Cashier to access the system dashboard.">
       <AuthCard>
         <form onSubmit={handleSubmit} noValidate>
+          {serverError && <p style={styles.serverError} role="alert">{serverError}</p>}
           <div style={styles.row}>
             <div style={styles.halfField}>
               <label htmlFor="firstName" style={styles.label}>First Name</label>
@@ -182,6 +193,13 @@ const styles: Record<string, React.CSSProperties> = {
     display: 'block',
     marginTop: '8px',
     color: '#DC2626',
+    fontSize: '14px',
+  },
+  serverError: {
+    padding: '10px 12px',
+    borderRadius: '10px',
+    background: '#FEE2E2',
+    color: '#B91C1C',
     fontSize: '14px',
   },
 };

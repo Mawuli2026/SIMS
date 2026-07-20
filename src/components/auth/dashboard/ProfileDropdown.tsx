@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { UserProfile } from "../../../types/dashboard.types";
+import { clearSession } from "../../../utils/authSession";
 
 interface ProfileDropdownProps {
   user: UserProfile;
@@ -12,7 +13,7 @@ const ProfileDropdown = ({ user }: ProfileDropdownProps) => {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    localStorage.removeItem("sims-auth-user");
+    clearSession();
     navigate("/login", { replace: true });
   };
 

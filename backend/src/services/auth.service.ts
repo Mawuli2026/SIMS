@@ -60,3 +60,16 @@ export const loginUser = async (input: LoginRequest): Promise<LoginResult> => {
   const publicUser = toPublicUser(user);
   return { token: generateAuthToken(publicUser), user: publicUser };
 };
+
+export const getUserById = async (userId: number): Promise<PublicUser> => {
+  const result = await query<UserRow>(
+    `SELECT id, first_name, last_name, email, password_hash, role, created_at
+     FROM users
+     WHERE id = $1
+     LIMIT 1`,
+    [userId],
+  );
+  const user = result.rows[0];
+  if (!user) throw new AuthServiceError("User account not found.", 404);
+  return toPublicUser(user);
+};

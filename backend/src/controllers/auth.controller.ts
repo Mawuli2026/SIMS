@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express";
-import { AuthServiceError, loginUser, registerUser } from "../services/auth.service";
+import { AuthServiceError, getUserById, loginUser, registerUser } from "../services/auth.service";
 import { LoginRequest, RegisterRequest } from "../types/auth.types";
 import { firstValidationError, loginSchema, registerSchema } from "../utils/validation";
 
@@ -40,6 +40,24 @@ export const login = async (
   try {
     const result = await loginUser(validation.data);
     response.status(200).json({ message: "Login successful", ...result });
+  } catch (error) {
+    if (error instanceof AuthServiceError) {
+      response.status(error.statusCode).json({ message: error.message });
+      return;
+    }
+    next(error);
+  }
+};
+
+export const me = async (request: Request, response: Response, next: NextFunction) => {
+  if (!request.authUser) {
+    response.status(401).json({ message: "Authentication token is required." });
+    return;
+  }
+
+  try {
+    const user = await getUserById(request.authUser.id);
+    response.status(200).json({ user });
   } catch (error) {
     if (error instanceof AuthServiceError) {
       response.status(error.statusCode).json({ message: error.message });

@@ -17,4 +17,17 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required."),
 });
 
+export const forgotPasswordSchema = z.object({
+  email: z.string().trim().min(1, "Email address is required.").email("Email address must be valid.").max(150, "Email address must not exceed 150 characters."),
+});
+
+export const resetPasswordSchema = z.object({
+  resetToken: z.string().trim().min(1, "Password reset token is required.").max(256, "Password reset token is invalid."),
+  password: z.string().min(1, "Password is required.").min(8, "Password must be at least 8 characters."),
+  confirmPassword: z.string().min(1, "Confirm password is required."),
+}).refine((values) => values.password === values.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
 export const firstValidationError = (error: z.ZodError) => error.issues[0]?.message ?? "Invalid request data.";

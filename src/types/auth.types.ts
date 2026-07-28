@@ -24,6 +24,10 @@ export interface ResetPasswordFormValues {
   confirmPassword: string;
 }
 
+export interface ResetPasswordRequest extends ResetPasswordFormValues {
+  resetToken: string;
+}
+
 export interface ApiUser {
   id: number;
   firstName: string;
@@ -40,6 +44,15 @@ export interface LoginResponse {
 }
 
 export interface RegisterResponse {
+  message: string;
+}
+
+export interface ForgotPasswordResponse {
+  message: string;
+  resetUrl?: string;
+}
+
+export interface ResetPasswordResponse {
   message: string;
 }
 

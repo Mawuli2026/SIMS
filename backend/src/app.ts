@@ -12,7 +12,9 @@ app.disable("x-powered-by");
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL ?? "http://localhost:5173" }));
 app.use(express.json({ limit: "100kb" }));
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+if (process.env.NODE_ENV !== "test") {
+  app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+}
 
 app.get("/api/health", async (_request: Request, response: Response) => {
   try {
@@ -32,13 +34,6 @@ app.use((_request: Request, response: Response) => {
 app.use((error: Error, _request: Request, response: Response, _next: NextFunction) => {
   console.error(error);
   response.status(500).json({ message: "Internal server error." });
-});
-
-app.get("/api/health", (_req, res) => {
-  res.status(200).json({
-    status: "ok",
-    database: "connected",
-  });
 });
 
 export default app;

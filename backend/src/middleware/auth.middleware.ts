@@ -32,3 +32,21 @@ export const authenticate = (request: Request, response: Response, next: NextFun
     response.status(401).json({ message: "Invalid or expired authentication token." });
   }
 };
+
+export const authorizeRoles = (...allowedRoles: UserRole[]) => {
+  const allowedRoleSet = new Set<UserRole>(allowedRoles);
+
+  return (request: Request, response: Response, next: NextFunction) => {
+    if (!request.authUser) {
+      response.status(401).json({ message: "Authentication is required." });
+      return;
+    }
+
+    if (!allowedRoleSet.has(request.authUser.role)) {
+      response.status(403).json({ message: "You do not have permission to access this resource." });
+      return;
+    }
+
+    next();
+  };
+};

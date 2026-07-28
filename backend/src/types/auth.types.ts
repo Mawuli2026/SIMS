@@ -14,6 +14,16 @@ export interface LoginRequest {
   password: string;
 }
 
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  resetToken: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export interface AuthTokenPayload {
   sub: string;
   role: UserRole;

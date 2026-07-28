@@ -1,4 +1,14 @@
-import { CurrentUserResponse, LoginFormValues, LoginResponse, RegisterFormValues, RegisterResponse } from "../types/auth.types";
+import {
+  CurrentUserResponse,
+  ForgotPasswordFormValues,
+  ForgotPasswordResponse,
+  LoginFormValues,
+  LoginResponse,
+  RegisterFormValues,
+  RegisterResponse,
+  ResetPasswordRequest,
+  ResetPasswordResponse,
+} from "../types/auth.types";
 
 const configuredApiUrl = document.querySelector<HTMLMetaElement>('meta[name="sims-api-url"]')?.content;
 const API_URL = (configuredApiUrl && !configuredApiUrl.startsWith("%") ? configuredApiUrl : "http://localhost:5000").replace(/\/$/, "");
@@ -39,3 +49,15 @@ export const loginAccount = ({ email, password }: LoginFormValues) => request<Lo
 export const getCurrentUser = (token: string) => request<CurrentUserResponse>("/api/auth/me", {
   headers: { Authorization: `Bearer ${token}` },
 });
+
+export const requestPasswordReset = (values: ForgotPasswordFormValues) =>
+  request<ForgotPasswordResponse>("/api/auth/forgot-password", {
+    method: "POST",
+    body: JSON.stringify(values),
+  });
+
+export const resetAccountPassword = (values: ResetPasswordRequest) =>
+  request<ResetPasswordResponse>("/api/auth/reset-password", {
+    method: "POST",
+    body: JSON.stringify(values),
+  });

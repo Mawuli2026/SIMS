@@ -16,7 +16,7 @@ export const searchAll = async (request: Request, response: Response, next: Next
   }
 
   try {
-    const results = await search(term, request.authUser.role);
+    const results = await search(term, request.authUser.role, request.authUser.id);
     response.status(200).json({ query: term, results });
   } catch (error) {
     next(error);

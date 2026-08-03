@@ -7,6 +7,9 @@ import { checkDatabaseConnection } from "./config/db";
 import authRouter from "./routes/auth.routes";
 import dashboardRouter from "./routes/dashboard.routes";
 import profileRouter from "./routes/profile.routes";
+import productRouter from "./routes/product.routes";
+import reportRouter from "./routes/report.routes";
+import saleRouter from "./routes/sale.routes";
 import searchRouter from "./routes/search.routes";
 
 const app = express();
@@ -31,6 +34,9 @@ app.get("/api/health", async (_request: Request, response: Response) => {
 app.use("/api/auth", authRouter);
 app.use("/api/dashboard", dashboardRouter);
 app.use("/api/profile", profileRouter);
+app.use("/api/products", productRouter);
+app.use("/api/reports", reportRouter);
+app.use("/api/sales", saleRouter);
 app.use("/api/search", searchRouter); 
 app.use((_request: Request, response: Response) => {
   response.status(404).json({ message: "Route not found." });

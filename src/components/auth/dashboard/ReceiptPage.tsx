@@ -1,5 +1,8 @@
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { findSaleById } from "../../../utils/saleStorage";
+import { getSale } from "../../../services/saleApi";
+import { Sale } from "../../../types/sale.types";
+import { getAuthToken } from "../../../utils/authSession";
 import { formatCurrency } from "../../../utils/currency";
 
 interface ReceiptPageProps { saleId: number; }
@@ -9,13 +12,46 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("en-GH", {
 }).format(new Date(value));
 
 const ReceiptPage = ({ saleId }: ReceiptPageProps) => {
-  const sale = findSaleById(saleId);
+  const [sale, setSale] = useState<Sale | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadReceipt = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setError("Your session is no longer available. Please sign in again.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setError("");
+    try {
+      const response = await getSale(token, saleId);
+      setSale(response.sale);
+    } catch (requestError) {
+      setSale(null);
+      setError(requestError instanceof Error ? requestError.message : "Unable to load this receipt.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [saleId]);
+
+  useEffect(() => { void loadReceipt(); }, [loadReceipt]);
+
+  if (isLoading) return <section className="dashboard-panel receipt-not-found">
+    <p className="eyebrow">Receipt</p>
+    <h1>Loading receipt...</h1>
+  </section>;
 
   if (!sale) return <section className="dashboard-panel receipt-not-found">
     <p className="eyebrow">Receipt unavailable</p>
     <h1>Sale not found</h1>
-    <p>The requested receipt does not exist in this browser’s saved sales.</p>
-    <Link className="primary-action" to="/dashboard/sales-history">View Sales History</Link>
+    <p role="alert">{error || "The requested receipt does not exist or is not available to your account."}</p>
+    <div className="receipt-actions">
+      <button type="button" className="secondary-button" onClick={() => void loadReceipt()}>Retry</button>
+      <Link className="primary-action" to="/dashboard/sales-history">View Sales History</Link>
+    </div>
   </section>;
 
   return (
@@ -46,7 +82,7 @@ const ReceiptPage = ({ saleId }: ReceiptPageProps) => {
         </table></div>
 
         <div className="receipt-total"><span>Total Amount</span><strong>{formatCurrency(sale.totalAmount)}</strong></div>
-        <footer className="receipt-footer"><strong>Thank you for your business.</strong><span>This receipt was generated from saved sale #{sale.id}.</span></footer>
+        <footer className="receipt-footer"><strong>Thank you for your business.</strong><span>This receipt was generated from sale #{sale.id}.</span></footer>
       </article>
     </div>
   );

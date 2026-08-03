@@ -1,5 +1,8 @@
+import { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { UserRole, SidebarItem } from "../../../types/dashboard.types";
+import { getSidebar } from "../../../services/dashboardApi";
+import { getAuthToken } from "../../../utils/authSession";
 
 interface SidebarProps { role: UserRole; isOpen: boolean; }
 
@@ -18,7 +21,26 @@ const cashierItems: SidebarItem[] = [
 ];
 
 const Sidebar = ({ role, isOpen }: SidebarProps) => {
-  const menuItems = role === "Admin" ? adminItems : cashierItems;
+  const fallbackItems = role === "Admin" ? adminItems : cashierItems;
+  const [menuItems, setMenuItems] = useState<SidebarItem[]>(fallbackItems);
+
+  useEffect(() => {
+    setMenuItems(fallbackItems);
+    const token = getAuthToken();
+    if (!token) return;
+
+    let active = true;
+    getSidebar(token).then((response) => {
+      if (active && response.role === role && response.menuItems.length > 0) {
+        setMenuItems(response.menuItems);
+      }
+    }).catch(() => {
+      // Keep the role-safe local navigation when the API is temporarily unavailable.
+    });
+
+    return () => { active = false; };
+  }, [role]);
+
   return (
     <aside className={`sidebar ${isOpen ? "sidebar-open" : "sidebar-closed"}`}>
       <div className="sidebar-logo">

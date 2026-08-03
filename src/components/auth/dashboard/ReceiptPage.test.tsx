@@ -1,10 +1,9 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import ReceiptPage from "./ReceiptPage";
-import { PRODUCTS_STORAGE_KEY } from "../../../utils/productStorage";
-import { SALES_STORAGE_KEY } from "../../../utils/saleStorage";
 import { Sale } from "../../../types/sale.types";
+import { AUTH_TOKEN_KEY } from "../../../utils/authSession";
+import ReceiptPage from "./ReceiptPage";
 
 const sale: Sale = {
   id: 123456,
@@ -16,36 +15,48 @@ const sale: Sale = {
   totalAmount: 110,
 };
 
+const response = (body: unknown, status = 200) => ({
+  ok: status >= 200 && status < 300,
+  status,
+  json: async () => body,
+}) as Response;
+
 describe("ReceiptPage", () => {
   beforeEach(() => {
-    localStorage.setItem(SALES_STORAGE_KEY, JSON.stringify([sale]));
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify([{ id: 3, quantityInStock: 16 }]));
+    localStorage.setItem(AUTH_TOKEN_KEY, "receipt-token");
+    jest.spyOn(global, "fetch").mockResolvedValue(response({ sale }));
   });
 
-  it("shows all saved receipt details", () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+    localStorage.clear();
+  });
+
+  it("loads and shows all database receipt details", async () => {
     render(<MemoryRouter><ReceiptPage saleId={sale.id} /></MemoryRouter>);
-    expect(screen.getByText("SIMS-123456")).toBeInTheDocument();
+    expect(await screen.findByText("SIMS-123456")).toBeInTheDocument();
     expect(screen.getByText("Alicia Ng")).toBeInTheDocument();
     expect(screen.getByText("Rice")).toBeInTheDocument();
     expect(screen.getAllByText("$110.00")).toHaveLength(2);
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/sales/123456"), expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: "Bearer receipt-token" }),
+    }));
   });
 
-  it("prints without changing sales or inventory", async () => {
+  it("prints the loaded receipt", async () => {
     const user = userEvent.setup();
     const print = jest.spyOn(window, "print").mockImplementation(() => {});
-    const salesBefore = localStorage.getItem(SALES_STORAGE_KEY);
-    const productsBefore = localStorage.getItem(PRODUCTS_STORAGE_KEY);
     render(<MemoryRouter><ReceiptPage saleId={sale.id} /></MemoryRouter>);
 
+    await screen.findByText("SIMS-123456");
     await user.click(screen.getByRole("button", { name: /print receipt/i }));
     expect(print).toHaveBeenCalledTimes(1);
-    expect(localStorage.getItem(SALES_STORAGE_KEY)).toBe(salesBefore);
-    expect(localStorage.getItem(PRODUCTS_STORAGE_KEY)).toBe(productsBefore);
-    print.mockRestore();
   });
 
-  it("handles a missing receipt", () => {
+  it("handles a missing database receipt", async () => {
+    (fetch as jest.Mock).mockResolvedValue(response({ message: "Sale not found." }, 404));
     render(<MemoryRouter><ReceiptPage saleId={999} /></MemoryRouter>);
-    expect(screen.getByText(/sale not found/i)).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /sale not found/i })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Sale not found.");
   });
 });

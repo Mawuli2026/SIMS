@@ -12,3 +12,12 @@ export interface Product {
 }
 
 export type ProductFormValues = Omit<Product, "id" | "status">;
+
+export interface ProductsResponse {
+  products: Product[];
+}
+
+export interface ProductMutationResponse {
+  message: string;
+  product: Product;
+}

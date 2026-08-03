@@ -43,6 +43,7 @@ export interface DashboardResponse {
 export type NotificationType = "low_stock" | "sale_completed" | "system_message";
 
 export interface DashboardNotification {
+  id: string;
   type: NotificationType;
   message: string;
   createdAt: string;

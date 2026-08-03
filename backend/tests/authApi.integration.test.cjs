@@ -176,23 +176,26 @@ const loginUser = (overrides = {}) => apiRequest("/api/auth/login", {
 
 before(async () => {
   await ensureTestDatabaseExists();
-  const migration = fs.readFileSync(
-    path.resolve(__dirname, "../migrations/001_create_users.sql"),
-    "utf8",
-  );
-  await pool.query(migration);
+  const migrationsDirectory = path.resolve(__dirname, "../migrations");
+  const migrations = fs.readdirSync(migrationsDirectory)
+    .filter((fileName) => /^\d+_.+\.sql$/.test(fileName))
+    .sort();
+  for (const migrationFile of migrations) {
+    const migration = fs.readFileSync(path.join(migrationsDirectory, migrationFile), "utf8");
+    await pool.query(migration);
+  }
   databaseReady = true;
   await startServer();
 });
 
 beforeEach(async () => {
-  await pool.query("TRUNCATE TABLE users RESTART IDENTITY");
+  await pool.query("TRUNCATE TABLE sale_items, sales, products, users RESTART IDENTITY CASCADE");
 });
 
 after(async () => {
   try {
     if (databaseReady) {
-      await pool.query("TRUNCATE TABLE users RESTART IDENTITY");
+      await pool.query("TRUNCATE TABLE sale_items, sales, products, users RESTART IDENTITY CASCADE");
     }
   } finally {
     await stopServer();
@@ -376,4 +379,126 @@ test("reset-password rejects an expired token", async () => {
   });
   assert.equal(expired.status, 400);
   assert.equal(expired.body.message, "Password reset link is invalid or has expired.");
+});
+
+test("sales, receipts, reports, and receipt search use persisted PostgreSQL transactions", async () => {
+  await registerUser();
+  const adminLogin = await loginUser();
+  const token = adminLogin.body.token;
+
+  const createdProduct = await apiRequest("/api/products", {
+    method: "POST",
+    token,
+    body: {
+      name: "Rice",
+      category: "Food",
+      costPrice: 40,
+      sellingPrice: 55,
+      quantityInStock: 18,
+      reorderLevel: 5,
+    },
+  });
+  assert.equal(createdProduct.status, 201);
+
+  const checkout = await apiRequest("/api/sales", {
+    method: "POST",
+    token,
+    body: { items: [{ productId: createdProduct.body.product.id, quantity: 2 }] },
+  });
+  assert.equal(checkout.status, 201);
+  assert.equal(checkout.body.sale.totalAmount, 110);
+  assert.equal(checkout.body.sale.items[0].remainingStock, 16);
+
+  const saleId = checkout.body.sale.id;
+  const history = await apiRequest("/api/sales", { token });
+  assert.equal(history.status, 200);
+  assert.equal(history.body.sales.length, 1);
+  assert.equal(history.body.sales[0].receiptNumber, checkout.body.sale.receiptNumber);
+
+  await apiRequest(`/api/products/${createdProduct.body.product.id}`, {
+    method: "PATCH",
+    token,
+    body: {
+      name: "Premium Rice",
+      category: "Food",
+      costPrice: 40,
+      sellingPrice: 60,
+      quantityInStock: 16,
+      reorderLevel: 5,
+    },
+  });
+
+  const receipt = await apiRequest(`/api/sales/${saleId}`, { token });
+  assert.equal(receipt.status, 200);
+  assert.equal(receipt.body.sale.items[0].productName, "Rice");
+  assert.equal(receipt.body.sale.items[0].unitPrice, 55);
+
+  const report = await apiRequest("/api/reports", { token });
+  assert.equal(report.status, 200);
+  assert.deepEqual(report.body.summary, {
+    totalRevenue: 110,
+    transactions: 1,
+    itemsSold: 2,
+    averageSale: 110,
+  });
+  assert.equal(report.body.products[0].name, "Rice");
+  assert.equal(report.body.cashiers[0].email, validRegistration.email);
+
+  const datedReport = await apiRequest("/api/reports?fromDate=2999-01-01&toDate=2999-01-02", { token });
+  assert.equal(datedReport.status, 200);
+  assert.equal(datedReport.body.summary.transactions, 0);
+
+  const receiptSearch = await apiRequest(`/api/search?q=${encodeURIComponent(checkout.body.sale.receiptNumber)}`, { token });
+  assert.equal(receiptSearch.status, 200);
+  assert.equal(receiptSearch.body.results.receipts[0].saleId, saleId);
+});
+
+test("cashiers only retrieve their own sales and cannot access reports", async () => {
+  await registerUser();
+  const adminLogin = await loginUser();
+  const createdProduct = await apiRequest("/api/products", {
+    method: "POST",
+    token: adminLogin.body.token,
+    body: {
+      name: "Sugar",
+      category: "Food",
+      costPrice: 7,
+      sellingPrice: 10,
+      quantityInStock: 10,
+      reorderLevel: 2,
+    },
+  });
+
+  await registerUser({
+    firstName: "Marcus",
+    lastName: "Cole",
+    email: "marcus@example.com",
+    role: "Cashier",
+  });
+  const firstCashier = await loginUser({ email: "marcus@example.com" });
+  const checkout = await apiRequest("/api/sales", {
+    method: "POST",
+    token: firstCashier.body.token,
+    body: { items: [{ productId: createdProduct.body.product.id, quantity: 1 }] },
+  });
+  assert.equal(checkout.status, 201);
+
+  await registerUser({
+    firstName: "Esi",
+    lastName: "Mensah",
+    email: "esi@example.com",
+    role: "Cashier",
+  });
+  const secondCashier = await loginUser({ email: "esi@example.com" });
+
+  const ownHistory = await apiRequest("/api/sales", { token: firstCashier.body.token });
+  assert.equal(ownHistory.body.sales.length, 1);
+  const otherHistory = await apiRequest("/api/sales", { token: secondCashier.body.token });
+  assert.equal(otherHistory.status, 200);
+  assert.equal(otherHistory.body.sales.length, 0);
+
+  const hiddenReceipt = await apiRequest(`/api/sales/${checkout.body.sale.id}`, { token: secondCashier.body.token });
+  assert.equal(hiddenReceipt.status, 404);
+  const forbiddenReport = await apiRequest("/api/reports", { token: firstCashier.body.token });
+  assert.equal(forbiddenReport.status, 403);
 });

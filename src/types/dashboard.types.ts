@@ -17,8 +17,8 @@ export interface SidebarItem {
 }
 
 export interface NotificationItem {
-  id: number;
-  type: "low_stock" | "sale_completed" | "system";
+  id: string;
+  type: "low_stock" | "sale_completed" | "system_message";
   message: string;
   createdAt: string;
 }
@@ -44,4 +44,53 @@ export interface DashboardSummary {
   lowStockCount?: number;
   mySalesToday?: number;
   mySalesCountToday?: number;
+}
+
+export interface DashboardResponse {
+  role: UserRole;
+  summary: DashboardSummary;
+  recentSales: RecentSale[];
+  lowStockProducts?: LowStockProduct[];
+}
+
+export interface SidebarResponse {
+  role: UserRole;
+  menuItems: SidebarItem[];
+}
+
+export interface NotificationsResponse {
+  notifications: NotificationItem[];
+}
+
+export interface ProfileResponse {
+  user: UserProfile;
+}
+
+export interface ProductSearchResult {
+  id: number;
+  name: string;
+  sellingPrice: number;
+  quantityInStock: number;
+}
+
+export interface SaleSearchResult {
+  saleId: number;
+  cashierName: string;
+  totalAmount: number;
+  createdAt: string;
+}
+
+export interface ReceiptSearchResult {
+  saleId: number;
+  totalAmount: number;
+  createdAt: string;
+}
+
+export interface SearchResponse {
+  query: string;
+  results: {
+    products: ProductSearchResult[];
+    sales: SaleSearchResult[];
+    receipts: ReceiptSearchResult[];
+  };
 }

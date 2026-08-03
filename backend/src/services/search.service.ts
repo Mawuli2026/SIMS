@@ -42,6 +42,13 @@ interface SaleRow {
   last_name: string;
 }
 
+const parseReceiptSaleId = (term: string): number | null => {
+  const match = term.match(/^(?:SIMS-)?(\d{1,8})$/i);
+  if (!match) return null;
+  const saleId = Number(match[1]);
+  return Number.isInteger(saleId) && saleId > 0 ? saleId : null;
+};
+
 const searchProducts = async (term: string): Promise<ProductSearchResult[]> => {
   const result = await query<ProductRow>(
     `SELECT id, name, selling_price, quantity_in_stock
@@ -61,19 +68,19 @@ const searchProducts = async (term: string): Promise<ProductSearchResult[]> => {
   }));
 };
 
-const searchSales = async (term: string): Promise<SaleSearchResult[]> => {
-  const saleId = Number(term);
-  const isNumericTerm = Number.isInteger(saleId) && saleId > 0;
+const searchSales = async (term: string, cashierId: number | null): Promise<SaleSearchResult[]> => {
+  const saleId = parseReceiptSaleId(term);
 
   const result = await query<SaleRow>(
     `SELECT sales.id, sales.total_amount, sales.created_at, users.first_name, users.last_name
      FROM sales
      JOIN users ON sales.cashier_id = users.id
-     WHERE ($1::int IS NOT NULL AND sales.id = $1)
-        OR (users.first_name || ' ' || users.last_name) ILIKE $2
+     WHERE (($1::int IS NOT NULL AND sales.id = $1)
+        OR (users.first_name || ' ' || users.last_name) ILIKE $2)
+       AND ($3::int IS NULL OR sales.cashier_id = $3)
      ORDER BY sales.created_at DESC
      LIMIT 10`,
-    [isNumericTerm ? saleId : null, `%${term}%`],
+    [saleId, `%${term}%`, cashierId],
   );
 
   return result.rows.map((row) => ({
@@ -84,16 +91,17 @@ const searchSales = async (term: string): Promise<SaleSearchResult[]> => {
   }));
 };
 
-const searchReceipts = async (term: string): Promise<ReceiptSearchResult[]> => {
-  const saleId = Number(term);
-  if (!Number.isInteger(saleId) || saleId <= 0) return [];
+const searchReceipts = async (term: string, cashierId: number | null): Promise<ReceiptSearchResult[]> => {
+  const saleId = parseReceiptSaleId(term);
+  if (!saleId) return [];
 
   const result = await query<Pick<SaleRow, "id" | "total_amount" | "created_at">>(
     `SELECT id, total_amount, created_at
      FROM sales
      WHERE id = $1
+       AND ($2::int IS NULL OR cashier_id = $2)
      LIMIT 1`,
-    [saleId],
+    [saleId, cashierId],
   );
 
   return result.rows.map((row) => ({
@@ -103,17 +111,12 @@ const searchReceipts = async (term: string): Promise<ReceiptSearchResult[]> => {
   }));
 };
 
-/**
- * Both Admin and Cashier can search products, sales, and receipts.
- * The `role` parameter is accepted so future role-specific restrictions
- * (e.g. hiding cost price fields from Cashier product results) can be
- * layered in without changing the controller/route contract.
- */
-export const search = async (term: string, _role: UserRole): Promise<SearchResults> => {
+export const search = async (term: string, role: UserRole, userId: number): Promise<SearchResults> => {
+  const cashierId = role === "Cashier" ? userId : null;
   const [products, sales, receipts] = await Promise.all([
     searchProducts(term),
-    searchSales(term),
-    searchReceipts(term),
+    searchSales(term, cashierId),
+    searchReceipts(term, cashierId),
   ]);
 
   return { products, sales, receipts };

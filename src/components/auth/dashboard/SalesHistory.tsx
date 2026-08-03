@@ -1,8 +1,10 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { UserProfile } from "../../../types/dashboard.types";
-import { loadSales } from "../../../utils/saleStorage";
+import { Sale } from "../../../types/sale.types";
 import { formatCurrency } from "../../../utils/currency";
+import { getAuthToken } from "../../../utils/authSession";
+import { getSales } from "../../../services/saleApi";
 
 interface SalesHistoryProps { user: UserProfile; }
 
@@ -11,10 +13,34 @@ const formatDate = (value: string) => new Intl.DateTimeFormat("en-US", {
 }).format(new Date(value));
 
 const SalesHistory = ({ user }: SalesHistoryProps) => {
-  const sales = useMemo(() => loadSales(), []);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [query, setQuery] = useState("");
   const [date, setDate] = useState("");
   const [expandedId, setExpandedId] = useState<number | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [requestError, setRequestError] = useState("");
+
+  const loadSaleHistory = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setRequestError("Your session is no longer available. Please sign in again.");
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    setRequestError("");
+    try {
+      const response = await getSales(token);
+      setSales(response.sales);
+    } catch (error) {
+      setRequestError(error instanceof Error ? error.message : "Unable to load sales history.");
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadSaleHistory(); }, [loadSaleHistory]);
 
   const visibleSales = useMemo(() => sales.filter((sale) => {
     const allowedForRole = user.role === "Admin" || sale.cashierEmail.toLowerCase() === user.email.toLowerCase();
@@ -31,11 +57,13 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
       <div className="page-header"><h1>Sales History</h1><p>{user.role === "Admin" ? "Review all completed business transactions." : "Review the sales completed under your account."}</p></div>
 
       <div className="history-summary">
-        <div><span>Transactions</span><strong>{visibleSales.length}</strong></div>
-        <div><span>Total value</span><strong>{formatCurrency(totalValue)}</strong></div>
+        <div><span>Transactions</span><strong>{isLoading ? "—" : visibleSales.length}</strong></div>
+        <div><span>Total value</span><strong>{isLoading ? "—" : formatCurrency(totalValue)}</strong></div>
       </div>
 
       <section className="dashboard-panel">
+        {requestError && <div className="product-request-error" role="alert"><span>{requestError}</span>
+          <button className="secondary-button" type="button" onClick={() => void loadSaleHistory()}>Retry</button></div>}
         <div className="history-filters">
           <label>Search sales<input aria-label="Search sales" placeholder="Receipt, cashier, or product..." value={query} onChange={(event) => setQuery(event.target.value)} /></label>
           <label>Sale date<input aria-label="Sale date" type="date" value={date} onChange={(event) => setDate(event.target.value)} /></label>
@@ -45,7 +73,8 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
         <div className="table-scroll"><table className="dashboard-table history-table">
           <thead><tr><th>Receipt</th><th>Date</th>{user.role === "Admin" && <th>Cashier</th>}<th>Items</th><th>Total</th><th>Actions</th></tr></thead>
           <tbody>
-            {visibleSales.map((sale) => <Fragment key={sale.id}>
+            {isLoading && <tr><td colSpan={user.role === "Admin" ? 6 : 5} className="empty-table">Loading sales history...</td></tr>}
+            {!isLoading && !requestError && visibleSales.map((sale) => <Fragment key={sale.id}>
               <tr key={sale.id}>
                 <td><strong>{sale.receiptNumber}</strong></td><td>{formatDate(sale.createdAt)}</td>
                 {user.role === "Admin" && <td>{sale.cashierName}</td>}<td>{sale.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td><strong>{formatCurrency(sale.totalAmount)}</strong></td>
@@ -59,7 +88,7 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
                 </div>
               </td></tr>}
             </Fragment>)}
-            {visibleSales.length === 0 && <tr><td colSpan={user.role === "Admin" ? 6 : 5} className="empty-table">No saved sales match your filters.</td></tr>}
+            {!isLoading && !requestError && visibleSales.length === 0 && <tr><td colSpan={user.role === "Admin" ? 6 : 5} className="empty-table">No sales match your filters.</td></tr>}
           </tbody>
         </table></div>
       </section>

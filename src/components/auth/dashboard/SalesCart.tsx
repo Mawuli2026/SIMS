@@ -1,20 +1,45 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { CartItem, Sale, calculateLineTotal, calculateSaleTotal } from "../../../types/sale.types";
+import { CartItem, Sale, SaleProduct, calculateLineTotal, calculateSaleTotal } from "../../../types/sale.types";
 import { UserProfile } from "../../../types/dashboard.types";
-import { loadProducts, saveProducts } from "../../../utils/productStorage";
-import { createReceiptNumber, saveSale } from "../../../utils/saleStorage";
 import { formatCurrency } from "../../../utils/currency";
+import { getAuthToken } from "../../../utils/authSession";
+import { completeSale as submitSale, getSaleProducts } from "../../../services/saleApi";
 
 interface SalesCartProps { user: UserProfile; }
 
 const SalesCart = ({ user }: SalesCartProps) => {
-  const products = useMemo(() => loadProducts().filter((product) => product.status === "Active"), []);
+  const [products, setProducts] = useState<SaleProduct[]>([]);
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [error, setError] = useState("");
+  const [productError, setProductError] = useState("");
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
+  const [isCompleting, setIsCompleting] = useState(false);
   const [completedSale, setCompletedSale] = useState<Sale | null>(null);
+
+  const loadProducts = useCallback(async () => {
+    const token = getAuthToken();
+    if (!token) {
+      setProductError("Your session is no longer available. Please sign in again.");
+      setIsLoadingProducts(false);
+      return;
+    }
+
+    setIsLoadingProducts(true);
+    setProductError("");
+    try {
+      const response = await getSaleProducts(token);
+      setProducts(response.products);
+    } catch (requestError) {
+      setProductError(requestError instanceof Error ? requestError.message : "Unable to load active products.");
+    } finally {
+      setIsLoadingProducts(false);
+    }
+  }, []);
+
+  useEffect(() => { void loadProducts(); }, [loadProducts]);
 
   const selectedProduct = products.find((product) => product.id === Number(selectedProductId));
   const total = calculateSaleTotal(cart);
@@ -37,7 +62,7 @@ const SalesCart = ({ user }: SalesCartProps) => {
       availableStock: selectedProduct.quantityInStock,
     };
     setCart(existing ? cart.map((item) => item.productId === nextItem.productId ? nextItem : item) : [...cart, nextItem]);
-    setSelectedProductId(""); setQuantity(1); setError("");
+    setSelectedProductId(""); setQuantity(1); setError(""); setCompletedSale(null);
   };
 
   const updateQuantity = (productId: number, nextQuantity: number) => {
@@ -49,50 +74,38 @@ const SalesCart = ({ user }: SalesCartProps) => {
     setError("");
   };
 
-  const completeSale = () => {
+  const completeSale = async () => {
     if (cart.length === 0) return setError("Add at least one product before completing the sale.");
+    const token = getAuthToken();
+    if (!token) return setError("Your session is no longer available. Please sign in again.");
 
-    const currentProducts = loadProducts();
-    for (const item of cart) {
-      const product = currentProducts.find((entry) => entry.id === item.productId);
-      if (!product || product.status !== "Active") return setError(`${item.productName} is no longer available for sale.`);
-      if (item.quantity > product.quantityInStock) return setError(`Insufficient stock for ${item.productName}. Only ${product.quantityInStock} available.`);
-    }
-
-    const saleId = Date.now();
-    const sale: Sale = {
-      id: saleId,
-      receiptNumber: createReceiptNumber(saleId),
-      createdAt: new Date().toISOString(),
-      cashierName: user.fullName,
-      cashierEmail: user.email,
-      items: cart.map((item) => ({
-        productId: item.productId,
-        productName: item.productName,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        lineTotal: calculateLineTotal(item),
-      })),
-      totalAmount: total,
-    };
-
-    const updatedProducts = currentProducts.map((product) => {
-      const soldItem = cart.find((item) => item.productId === product.id);
-      return soldItem ? { ...product, quantityInStock: product.quantityInStock - soldItem.quantity } : product;
-    });
-
-    saveProducts(updatedProducts);
-    saveSale(sale);
-    setCompletedSale(sale);
-    setCart([]);
+    setIsCompleting(true);
     setError("");
-    setSelectedProductId("");
-    setQuantity(1);
+    try {
+      const response = await submitSale(token, {
+        items: cart.map(({ productId, quantity: itemQuantity }) => ({ productId, quantity: itemQuantity })),
+      });
+
+      setCompletedSale(response.sale);
+      setProducts((current) => current.map((product) => {
+        const soldItem = response.sale.items.find((item) => item.productId === product.id);
+        return soldItem ? {
+          ...product,
+          quantityInStock: soldItem.remainingStock ?? Math.max(0, product.quantityInStock - soldItem.quantity),
+        } : product;
+      }));
+      setCart([]); setSelectedProductId(""); setQuantity(1);
+
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : "Unable to complete the sale.");
+    } finally {
+      setIsCompleting(false);
+    }
   };
 
   return (
     <div>
-      <div className="page-header"><h1>Record Sale</h1><p>Select products, enter quantities, and review the automatically calculated total.</p></div>
+      <div className="page-header"><h1>Record Sale</h1><p>Select products, enter quantities, and review the automatically calculated total. Signed in as {user.fullName}.</p></div>
 
       {completedSale && <div className="sale-success" role="status">
         <div><strong>Sale completed successfully</strong><span>Receipt {completedSale.receiptNumber} · {formatCurrency(completedSale.totalAmount)}</span></div>
@@ -102,16 +115,18 @@ const SalesCart = ({ user }: SalesCartProps) => {
       <div className="sales-layout">
         <section className="dashboard-panel sale-entry-panel">
           <h2>Add Product</h2>
+          {productError && <div className="product-request-error" role="alert"><span>{productError}</span>
+            <button className="secondary-button" type="button" onClick={() => void loadProducts()}>Retry</button></div>}
           <div className="sale-entry-form">
             <label>Product
-              <select aria-label="Product" value={selectedProductId} onChange={(event) => { setSelectedProductId(event.target.value); setError(""); }}>
-                <option value="">Select an active product</option>
-                {products.map((product) => <option key={product.id} value={product.id}>{product.name} — {formatCurrency(product.sellingPrice)} ({product.quantityInStock} in stock)</option>)}
+              <select aria-label="Product" disabled={isLoadingProducts || isCompleting} value={selectedProductId} onChange={(event) => { setSelectedProductId(event.target.value); setError(""); }}>
+                <option value="">{isLoadingProducts ? "Loading active products..." : "Select an active product"}</option>
+                {products.map((product) => <option key={product.id} value={product.id} disabled={product.quantityInStock < 1}>{product.name} — {formatCurrency(product.sellingPrice)} ({product.quantityInStock} in stock)</option>)}
               </select>
             </label>
-            <label>Quantity<input aria-label="Quantity" type="number" min="1" max={selectedProduct?.quantityInStock} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} /></label>
+            <label>Quantity<input aria-label="Quantity" type="number" min="1" max={selectedProduct?.quantityInStock} disabled={isCompleting} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} /></label>
             {selectedProduct && <div className="stock-note"><span>Available stock</span><strong>{selectedProduct.quantityInStock}</strong></div>}
-            <button type="button" className="primary-button" onClick={addToCart}>Add to Sale</button>
+            <button type="button" className="primary-button" disabled={isLoadingProducts || isCompleting} onClick={addToCart}>Add to Sale</button>
           </div>
           {error && <p className="form-error sale-error" role="alert">{error}</p>}
         </section>
@@ -124,15 +139,15 @@ const SalesCart = ({ user }: SalesCartProps) => {
               {cart.map((item) => <tr key={item.productId}>
                 <td><strong>{item.productName}</strong><small className="stock-available">{item.availableStock} available</small></td>
                 <td>{formatCurrency(item.unitPrice)}</td>
-                <td><input className="cart-quantity" aria-label={`Quantity for ${item.productName}`} type="number" min="1" max={item.availableStock} value={item.quantity} onChange={(event) => updateQuantity(item.productId, Number(event.target.value))} /></td>
+                <td><input className="cart-quantity" aria-label={`Quantity for ${item.productName}`} type="number" min="1" max={item.availableStock} disabled={isCompleting} value={item.quantity} onChange={(event) => updateQuantity(item.productId, Number(event.target.value))} /></td>
                 <td><strong>{formatCurrency(calculateLineTotal(item))}</strong></td>
-                <td><button className="remove-item" type="button" onClick={() => { setCart(cart.filter((entry) => entry.productId !== item.productId)); setError(""); }} aria-label={`Remove ${item.productName}`}>Remove</button></td>
+                <td><button className="remove-item" type="button" disabled={isCompleting} onClick={() => { setCart(cart.filter((entry) => entry.productId !== item.productId)); setError(""); }} aria-label={`Remove ${item.productName}`}>Remove</button></td>
               </tr>)}
               {cart.length === 0 && <tr><td colSpan={5} className="empty-table">No products have been added to this sale.</td></tr>}
             </tbody>
           </table></div>
           <div className="sale-summary"><span>Sale Total</span><strong>{formatCurrency(total)}</strong></div>
-          <button type="button" className="complete-sale-button" disabled={cart.length === 0} onClick={completeSale}>Complete Sale</button>
+          <button type="button" className="complete-sale-button" disabled={cart.length === 0 || isCompleting} onClick={() => void completeSale()}>{isCompleting ? "Completing Sale..." : "Complete Sale"}</button>
         </section>
       </div>
     </div>

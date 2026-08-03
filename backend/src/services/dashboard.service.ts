@@ -10,16 +10,16 @@ import {
 
 const ADMIN_SIDEBAR: SidebarItem[] = [
   { label: "Dashboard", path: "/dashboard" },
-  { label: "Products", path: "/products" },
-  { label: "Sales", path: "/sales" },
-  { label: "Sales History", path: "/sales-history" },
-  { label: "Reports", path: "/reports" },
-  { label: "Low Stock", path: "/low-stock" },
+  { label: "Products", path: "/dashboard/products" },
+  { label: "Sales", path: "/dashboard/sales" },
+  { label: "Sales History", path: "/dashboard/sales-history" },
+  { label: "Reports", path: "/dashboard/reports" },
+  { label: "Low Stock", path: "/dashboard/low-stock" },
 ];
 
 const CASHIER_SIDEBAR: SidebarItem[] = [
-  { label: "Record Sales", path: "/sales" },
-  { label: "Sales History", path: "/sales-history" },
+  { label: "Record Sales", path: "/dashboard/sales" },
+  { label: "Sales History", path: "/dashboard/sales-history" },
 ];
 
 export const getSidebarForRole = (role: UserRole): SidebarItem[] =>
@@ -203,12 +203,14 @@ const getAdminNotifications = async (): Promise<DashboardNotification[]> => {
   const [lowStockProducts, recentSales] = await Promise.all([getLowStockProducts(5), getRecentSales(5)]);
 
   const lowStockNotifications: DashboardNotification[] = lowStockProducts.map((product) => ({
+    id: `low-stock-${product.productId}`,
     type: "low_stock",
     message: `${product.name} is low in stock.`,
     createdAt: new Date().toISOString(),
   }));
 
   const saleNotifications: DashboardNotification[] = recentSales.map((sale) => ({
+    id: `sale-${sale.saleId}`,
     type: "sale_completed",
     message: `A sale of ${sale.totalAmount.toFixed(2)} was completed.`,
     createdAt: sale.createdAt,
@@ -224,6 +226,7 @@ const getCashierNotifications = async (cashierId: number): Promise<DashboardNoti
 
   return recentSales
     .map((sale) => ({
+      id: `sale-${sale.saleId}`,
       type: "sale_completed" as const,
       message: `Your sale of ${sale.totalAmount.toFixed(2)} was completed.`,
       createdAt: sale.createdAt,

@@ -4,7 +4,7 @@ import CashierDashboard from "./CashierDashboard";
 import { UserProfile } from "../../../types/dashboard.types";
 import { AUTH_TOKEN_KEY } from "../../../utils/authSession";
 
-const cashier: UserProfile = { id: 2, firstName: "Marcus", lastName: "Cole", fullName: "Marcus Cole", email: "cashier@sims.com", role: "Cashier", dateJoined: "2026-01-01", initial: "M" };
+const cashier: UserProfile = { id: 2, firstName: "Marcus", lastName: "Cole", fullName: "Marcus Cole", email: "cashier@sims.com", role: "Cashier", mustChangePassword: false, dateJoined: "2026-01-01", initial: "M" };
 
 describe("CashierDashboard", () => {
   beforeEach(() => {

@@ -1,5 +1,5 @@
 import jwt, { SignOptions } from "jsonwebtoken";
-import { PublicUser } from "../types/auth.types";
+import { UserRole } from "../types/auth.types";
 
 const getJwtSecret = () => {
   const secret = process.env.JWT_SECRET;
@@ -9,9 +9,15 @@ const getJwtSecret = () => {
   return secret;
 };
 
-export const generateAuthToken = (user: Pick<PublicUser, "id" | "role">) => {
+interface TokenUser {
+  id: number;
+  role: UserRole;
+  tokenVersion: number;
+}
+
+export const generateAuthToken = (user: TokenUser) => {
   const expiresIn = (process.env.JWT_EXPIRES_IN ?? "1d") as SignOptions["expiresIn"];
-  return jwt.sign({ role: user.role }, getJwtSecret(), {
+  return jwt.sign({ role: user.role, ver: user.tokenVersion }, getJwtSecret(), {
     subject: String(user.id),
     expiresIn,
   });

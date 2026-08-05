@@ -1,10 +1,10 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import LoginPage from './LoginPage';
 import { AUTH_TOKEN_KEY, AUTH_USER_KEY } from '../../utils/authSession';
 
-const apiUser = { id: 1, firstName: 'Alicia', lastName: 'Ng', email: 'admin@sims.com', role: 'Admin', createdAt: '2026-01-15T00:00:00.000Z' };
+const apiUser = { id: 1, firstName: 'Alicia', lastName: 'Ng', email: 'manager@sims.com', role: 'Manager', mustChangePassword: false, createdAt: '2026-01-15T00:00:00.000Z' };
 
 describe('LoginPage', () => {
   beforeEach(() => {
@@ -16,6 +16,8 @@ describe('LoginPage', () => {
   it('logs in through the API and stores the authenticated session', async () => {
     const user = userEvent.setup();
     render(<MemoryRouter><LoginPage /></MemoryRouter>);
+
+    expect(screen.queryByRole('link', { name: /create account/i })).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText(/email address/i), 'admin@sims.com');
     await user.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'Secret123!');
@@ -35,5 +37,25 @@ describe('LoginPage', () => {
     await user.click(screen.getByRole('button', { name: /log in/i }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Invalid email or password.');
     expect(localStorage.getItem(AUTH_TOKEN_KEY)).toBeNull();
+  });
+
+  it('sends temporary-password users to the required password-change page', async () => {
+    jest.mocked(fetch).mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ message: 'Login successful', token: 'temporary-jwt', user: { ...apiUser, mustChangePassword: true } }),
+    } as Response);
+    const user = userEvent.setup();
+    render(<MemoryRouter initialEntries={['/login']}><Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/change-password" element={<p>Replace your temporary password</p>} />
+    </Routes></MemoryRouter>);
+
+    await user.type(screen.getByLabelText(/email address/i), 'manager@sims.com');
+    await user.type(screen.getByLabelText(/password/i, { selector: 'input' }), 'Temporary123!');
+    await user.click(screen.getByRole('button', { name: /log in/i }));
+
+    expect(await screen.findByText('Replace your temporary password')).toBeInTheDocument();
+    expect(localStorage.getItem(AUTH_USER_KEY)).toContain('"mustChangePassword":true');
   });
 });

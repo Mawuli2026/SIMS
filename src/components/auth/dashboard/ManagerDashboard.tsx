@@ -1,13 +1,18 @@
-import DashboardCard from "./DashboardCard";
+import { UserRole } from "../../../types/dashboard.types";
 import { formatCurrency } from "../../../utils/currency";
+import DashboardCard from "./DashboardCard";
 import useDashboardData from "./useDashboardData";
+
+interface ManagerDashboardProps {
+  role: Exclude<UserRole, "Cashier">;
+}
 
 const formatDate = (value: string) => {
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
 };
 
-const AdminDashboard = () => {
+const ManagerDashboard = ({ role }: ManagerDashboardProps) => {
   const { data, error, isLoading, reload } = useDashboardData();
 
   if (isLoading) {
@@ -27,7 +32,7 @@ const AdminDashboard = () => {
   return (
     <div>
       <div className="page-header">
-        <h1>Admin Dashboard</h1>
+        <h1>{role === "SystemAdmin" ? "System Admin Dashboard" : "Manager Dashboard"}</h1>
         <p>Monitor sales, inventory, reports, and low-stock products.</p>
       </div>
 
@@ -71,4 +76,4 @@ const AdminDashboard = () => {
   );
 };
 
-export default AdminDashboard;
+export default ManagerDashboard;

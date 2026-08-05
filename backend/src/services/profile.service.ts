@@ -11,6 +11,7 @@ export const getMyProfile = async (userId: number): Promise<ProfileUser> => {
     fullName: `${user.firstName} ${user.lastName}`,
     email: user.email,
     role: user.role,
+    mustChangePassword: user.mustChangePassword,
     dateJoined: user.createdAt.toISOString(),
     initial: user.firstName.charAt(0).toUpperCase(),
   };

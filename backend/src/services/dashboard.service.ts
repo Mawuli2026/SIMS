@@ -1,5 +1,5 @@
 import { query } from "../config/db";
-import { UserRole } from "../types/auth.types";
+import { ManagementRole, UserRole } from "../types/auth.types";
 import {
   DashboardNotification,
   DashboardResponse,
@@ -8,7 +8,7 @@ import {
   SidebarItem,
 } from "../types/dashboard.types";
 
-const ADMIN_SIDEBAR: SidebarItem[] = [
+const MANAGEMENT_SIDEBAR: SidebarItem[] = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Products", path: "/dashboard/products" },
   { label: "Sales", path: "/dashboard/sales" },
@@ -17,13 +17,20 @@ const ADMIN_SIDEBAR: SidebarItem[] = [
   { label: "Low Stock", path: "/dashboard/low-stock" },
 ];
 
+const SYSTEM_ADMIN_SIDEBAR: SidebarItem[] = [
+  MANAGEMENT_SIDEBAR[0],
+  { label: "Employees", path: "/dashboard/employees" },
+  { label: "Audit Logs", path: "/dashboard/audit-logs" },
+  ...MANAGEMENT_SIDEBAR.slice(1),
+];
+
 const CASHIER_SIDEBAR: SidebarItem[] = [
   { label: "Record Sales", path: "/dashboard/sales" },
   { label: "Sales History", path: "/dashboard/sales-history" },
 ];
 
 export const getSidebarForRole = (role: UserRole): SidebarItem[] =>
-  role === "Admin" ? ADMIN_SIDEBAR : CASHIER_SIDEBAR;
+  role === "SystemAdmin" ? SYSTEM_ADMIN_SIDEBAR : role === "Manager" ? MANAGEMENT_SIDEBAR : CASHIER_SIDEBAR;
 
 interface TodaySalesRow {
   today_sales: string;
@@ -166,7 +173,7 @@ const getLowStockProducts = async (limit = 10): Promise<LowStockProduct[]> => {
   }));
 };
 
-export const getAdminDashboard = async (): Promise<DashboardResponse> => {
+export const getManagerDashboard = async (role: ManagementRole): Promise<DashboardResponse> => {
   const [todaySales, salesCountToday, totalProducts, lowStockCount, recentSales, lowStockProducts] =
     await Promise.all([
       getTodaySalesTotal(),
@@ -178,7 +185,7 @@ export const getAdminDashboard = async (): Promise<DashboardResponse> => {
     ]);
 
   return {
-    role: "Admin",
+    role,
     summary: { todaySales, salesCountToday, totalProducts, lowStockCount },
     recentSales,
     lowStockProducts,
@@ -199,7 +206,7 @@ export const getCashierDashboard = async (cashierId: number): Promise<DashboardR
   };
 };
 
-const getAdminNotifications = async (): Promise<DashboardNotification[]> => {
+const getManagementNotifications = async (): Promise<DashboardNotification[]> => {
   const [lowStockProducts, recentSales] = await Promise.all([getLowStockProducts(5), getRecentSales(5)]);
 
   const lowStockNotifications: DashboardNotification[] = lowStockProducts.map((product) => ({
@@ -235,4 +242,4 @@ const getCashierNotifications = async (cashierId: number): Promise<DashboardNoti
 };
 
 export const getNotificationsForRole = (role: UserRole, userId: number): Promise<DashboardNotification[]> =>
-  role === "Admin" ? getAdminNotifications() : getCashierNotifications(userId);
+  role === "Cashier" ? getCashierNotifications(userId) : getManagementNotifications();

@@ -6,6 +6,7 @@ const {
   hashPasswordResetToken,
 } = require("../dist/utils/passwordReset.js");
 const {
+  changePasswordSchema,
   forgotPasswordSchema,
   resetPasswordSchema,
 } = require("../dist/utils/validation.js");
@@ -68,5 +69,25 @@ test("reset-password validation requires matching passwords and a token", () => 
     resetToken: "development-token",
     password: "NewSecret123!",
     confirmPassword: "NewSecret123!",
+  }).success, true);
+});
+
+test("change-password validation requires current and matching 12-character passwords", () => {
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "Temporary123!",
+    newPassword: "short",
+    confirmPassword: "short",
+  }).success, false);
+
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "Temporary123!",
+    newPassword: "PrivatePassword456!",
+    confirmPassword: "DifferentPassword456!",
+  }).success, false);
+
+  assert.equal(changePasswordSchema.safeParse({
+    currentPassword: "Temporary123!",
+    newPassword: "PrivatePassword456!",
+    confirmPassword: "PrivatePassword456!",
   }).success, true);
 });

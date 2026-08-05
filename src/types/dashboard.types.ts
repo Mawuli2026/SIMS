@@ -1,4 +1,4 @@
-export type UserRole = "Admin" | "Cashier";
+export type UserRole = "SystemAdmin" | "Manager" | "Cashier";
 
 export interface UserProfile {
   id: number;
@@ -7,6 +7,7 @@ export interface UserProfile {
   fullName: string;
   email: string;
   role: UserRole;
+  mustChangePassword: boolean;
   dateJoined: string;
   initial: string;
 }

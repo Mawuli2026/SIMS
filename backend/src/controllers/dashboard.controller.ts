@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import {
-  getAdminDashboard,
   getCashierDashboard,
+  getManagerDashboard,
   getNotificationsForRole,
   getSidebarForRole,
 } from "../services/dashboard.service";
@@ -14,7 +14,7 @@ export const getDashboard = async (request: Request, response: Response, next: N
 
   try {
     const { id, role } = request.authUser;
-    const dashboard = role === "Admin" ? await getAdminDashboard() : await getCashierDashboard(id);
+    const dashboard = role === "Cashier" ? await getCashierDashboard(id) : await getManagerDashboard(role);
     response.status(200).json(dashboard);
   } catch (error) {
     next(error);

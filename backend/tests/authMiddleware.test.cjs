@@ -1,6 +1,6 @@
 const assert = require("node:assert/strict");
 const { test } = require("node:test");
-const { authorizeRoles } = require("../dist/middleware/auth.middleware.js");
+const { authorizeRoles, requirePasswordChangeCompleted } = require("../dist/middleware/auth.middleware.js");
 
 const createResponse = () => ({
   statusCode: 200,
@@ -20,7 +20,7 @@ test("role authorization requires authentication to run first", () => {
   const response = createResponse();
   let nextCalled = false;
 
-  authorizeRoles("Admin")(request, response, () => {
+  authorizeRoles("SystemAdmin")(request, response, () => {
     nextCalled = true;
   });
 
@@ -34,7 +34,7 @@ test("role authorization rejects an authenticated user without an allowed role",
   const response = createResponse();
   let nextCalled = false;
 
-  authorizeRoles("Admin")(request, response, () => {
+  authorizeRoles("SystemAdmin", "Manager")(request, response, () => {
     nextCalled = true;
   });
 
@@ -44,11 +44,11 @@ test("role authorization rejects an authenticated user without an allowed role",
 });
 
 test("role authorization allows an authenticated user with an allowed role", () => {
-  const request = { authUser: { id: 3, role: "Admin" } };
+  const request = { authUser: { id: 3, role: "SystemAdmin" } };
   const response = createResponse();
   let nextCalled = false;
 
-  authorizeRoles("Admin")(request, response, () => {
+  authorizeRoles("SystemAdmin")(request, response, () => {
     nextCalled = true;
   });
 
@@ -62,9 +62,57 @@ test("role authorization supports routes shared by multiple roles", () => {
   const response = createResponse();
   let nextCalled = false;
 
-  authorizeRoles("Admin", "Cashier")(request, response, () => {
+  authorizeRoles("SystemAdmin", "Manager", "Cashier")(request, response, () => {
     nextCalled = true;
   });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(nextCalled, true);
+});
+
+test("authorization policies enforce the complete protected-module role matrix", () => {
+  const policies = {
+    dashboard: ["SystemAdmin", "Manager", "Cashier"],
+    sales: ["SystemAdmin", "Manager", "Cashier"],
+    products: ["SystemAdmin", "Manager"],
+    reports: ["SystemAdmin", "Manager"],
+    employees: ["SystemAdmin"],
+    auditLogs: ["SystemAdmin"],
+  };
+
+  for (const [moduleName, allowedRoles] of Object.entries(policies)) {
+    for (const role of ["SystemAdmin", "Manager", "Cashier"]) {
+      const request = { authUser: { id: 1, role } };
+      const response = createResponse();
+      let nextCalled = false;
+      authorizeRoles(...allowedRoles)(request, response, () => { nextCalled = true; });
+      assert.equal(nextCalled, allowedRoles.includes(role), `${role} access to ${moduleName}`);
+      assert.equal(response.statusCode, allowedRoles.includes(role) ? 200 : 403, `${role} status for ${moduleName}`);
+    }
+  }
+});
+
+test("password-change enforcement blocks temporary-password sessions", () => {
+  const request = { authUser: { id: 9, role: "Cashier", mustChangePassword: true } };
+  const response = createResponse();
+  let nextCalled = false;
+
+  requirePasswordChangeCompleted(request, response, () => { nextCalled = true; });
+
+  assert.equal(response.statusCode, 403);
+  assert.deepEqual(response.body, {
+    code: "PASSWORD_CHANGE_REQUIRED",
+    message: "You must change your temporary password before accessing SIMS.",
+  });
+  assert.equal(nextCalled, false);
+});
+
+test("password-change enforcement allows completed accounts", () => {
+  const request = { authUser: { id: 9, role: "Cashier", mustChangePassword: false } };
+  const response = createResponse();
+  let nextCalled = false;
+
+  requirePasswordChangeCompleted(request, response, () => { nextCalled = true; });
 
   assert.equal(response.statusCode, 200);
   assert.equal(nextCalled, true);

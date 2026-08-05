@@ -8,7 +8,9 @@ import {
   updateProductStatus as updateProductStatusRecord,
 } from "../services/product.service";
 import { ProductInput } from "../types/product.types";
+import { AuditAction } from "../types/audit.types";
 import { firstValidationError, productSchema, productStatusSchema } from "../utils/validation";
+import { getAuditRequestContext, recordAuditEvent } from "../services/audit.service";
 
 const parseProductId = (value: string): number | null => {
   const id = Number(value);
@@ -21,6 +23,23 @@ const handleServiceError = (error: unknown, response: Response, next: NextFuncti
     return;
   }
   next(error);
+};
+
+const auditProductMutation = (
+  request: Request,
+  product: { id: number; name: string; status: string; quantityInStock: number },
+  action: AuditAction,
+) => {
+  if (!request.authUser) return Promise.resolve();
+  return recordAuditEvent({
+    actorUserId: request.authUser.id,
+    action,
+    entityType: "product",
+    entityId: product.id,
+    outcome: "success",
+    details: { name: product.name, status: product.status, quantityInStock: product.quantityInStock },
+    ...getAuditRequestContext(request),
+  });
 };
 
 export const listProducts = async (_request: Request, response: Response, next: NextFunction) => {
@@ -52,6 +71,7 @@ export const createProduct = async (
 
   try {
     const product = await createProductRecord(validation.data);
+    await auditProductMutation(request, product, "PRODUCT_CREATED");
     response.status(201).json({ message: "Product created successfully.", product });
   } catch (error) {
     handleServiceError(error, response, next);
@@ -77,6 +97,7 @@ export const updateProduct = async (
 
   try {
     const product = await updateProductRecord(productId, validation.data);
+    await auditProductMutation(request, product, "PRODUCT_UPDATED");
     response.status(200).json({ message: "Product updated successfully.", product });
   } catch (error) {
     handleServiceError(error, response, next);
@@ -102,6 +123,7 @@ export const updateProductStatus = async (
 
   try {
     const product = await updateProductStatusRecord(productId, validation.data.status);
+    await auditProductMutation(request, product, "PRODUCT_STATUS_CHANGED");
     const action = validation.data.status === "Active" ? "activated" : "deactivated";
     response.status(200).json({ message: `Product ${action} successfully.`, product });
   } catch (error) {

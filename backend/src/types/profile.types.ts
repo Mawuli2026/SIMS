@@ -7,6 +7,7 @@ export interface ProfileUser {
   fullName: string;
   email: string;
   role: UserRole;
+  mustChangePassword: boolean;
   dateJoined: string;
   initial: string;
 }

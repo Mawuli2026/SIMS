@@ -1,11 +1,12 @@
 import { Router } from "express";
 import { getDashboard, getNotifications, getSidebar } from "../controllers/dashboard.controller";
-import { authenticate } from "../middleware/auth.middleware";
+import { authenticate, requirePasswordChangeCompleted } from "../middleware/auth.middleware";
 
 const dashboardRouter = Router();
 
-dashboardRouter.get("/", authenticate, getDashboard);
-dashboardRouter.get("/sidebar", authenticate, getSidebar);
-dashboardRouter.get("/notifications", authenticate, getNotifications);
+dashboardRouter.use(authenticate, requirePasswordChangeCompleted);
+dashboardRouter.get("/", getDashboard);
+dashboardRouter.get("/sidebar", getSidebar);
+dashboardRouter.get("/notifications", getNotifications);
 
 export default dashboardRouter;

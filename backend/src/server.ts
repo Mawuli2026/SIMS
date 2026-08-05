@@ -1,8 +1,11 @@
 import "dotenv/config";
 import app from "./app";
 import { pool } from "./config/db";
+import { assertProductionEmailConfiguration } from "./config/email";
 
 const port = Number(process.env.PORT) || 5000;
+
+assertProductionEmailConfiguration();
 
 const server = app.listen(port, () => {
   console.log(`SIMS API listening on http://localhost:${port}`);

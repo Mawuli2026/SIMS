@@ -79,6 +79,14 @@ const ProfileDropdown = ({ user }: ProfileDropdownProps) => {
 
           <button
             type="button"
+            className="profile-menu-item"
+            onClick={() => navigate("/change-password")}
+          >
+            Change Password
+          </button>
+
+          <button
+            type="button"
             className="profile-menu-item logout"
             onClick={handleLogout}
           >

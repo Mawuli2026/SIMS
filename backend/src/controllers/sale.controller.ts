@@ -8,6 +8,7 @@ import {
 } from "../services/sale.service";
 import { CreateSaleInput } from "../types/sale.types";
 import { createSaleSchema, firstValidationError } from "../utils/validation";
+import { getAuditRequestContext, recordAuditEvent } from "../services/audit.service";
 
 export const listSaleProducts = async (_request: Request, response: Response, next: NextFunction) => {
   try {
@@ -82,6 +83,19 @@ export const completeSale = async (
 
   try {
     const sale = await createSale(request.authUser.id, validation.data);
+    await recordAuditEvent({
+      actorUserId: request.authUser.id,
+      action: "SALE_COMPLETED",
+      entityType: "sale",
+      entityId: sale.id,
+      outcome: "success",
+      details: {
+        receiptNumber: sale.receiptNumber,
+        totalAmount: sale.totalAmount,
+        itemCount: sale.items.reduce((total, item) => total + item.quantity, 0),
+      },
+      ...getAuditRequestContext(request),
+    });
     response.status(201).json({ message: "Sale completed successfully.", sale });
   } catch (error) {
     if (error instanceof SaleServiceError) {

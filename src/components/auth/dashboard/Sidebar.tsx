@@ -6,7 +6,7 @@ import { getAuthToken } from "../../../utils/authSession";
 
 interface SidebarProps { role: UserRole; isOpen: boolean; }
 
-const adminItems: SidebarItem[] = [
+const managementItems: SidebarItem[] = [
   { label: "Dashboard", path: "/dashboard" },
   { label: "Products", path: "/dashboard/products" },
   { label: "Sales", path: "/dashboard/sales" },
@@ -15,13 +15,20 @@ const adminItems: SidebarItem[] = [
   { label: "Low Stock", path: "/dashboard/low-stock" },
 ];
 
+const systemAdminItems: SidebarItem[] = [
+  managementItems[0],
+  { label: "Employees", path: "/dashboard/employees" },
+  { label: "Audit Logs", path: "/dashboard/audit-logs" },
+  ...managementItems.slice(1),
+];
+
 const cashierItems: SidebarItem[] = [
   { label: "Record Sales", path: "/dashboard/sales" },
   { label: "Sales History", path: "/dashboard/sales-history" },
 ];
 
 const Sidebar = ({ role, isOpen }: SidebarProps) => {
-  const fallbackItems = role === "Admin" ? adminItems : cashierItems;
+  const fallbackItems = role === "SystemAdmin" ? systemAdminItems : role === "Manager" ? managementItems : cashierItems;
   const [menuItems, setMenuItems] = useState<SidebarItem[]>(fallbackItems);
 
   useEffect(() => {

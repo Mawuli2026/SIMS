@@ -5,7 +5,7 @@ import TopNavbar from "./TopNavbar";
 import { UserProfile } from "../../../types/dashboard.types";
 import { AUTH_TOKEN_KEY } from "../../../utils/authSession";
 
-const admin: UserProfile = { id: 1, firstName: "Alicia", lastName: "Ng", fullName: "Alicia Ng", email: "admin@sims.com", role: "Admin", dateJoined: "2026-01-01", initial: "A" };
+const manager: UserProfile = { id: 1, firstName: "Alicia", lastName: "Ng", fullName: "Alicia Ng", email: "manager@sims.com", role: "Manager", mustChangePassword: false, dateJoined: "2026-01-01", initial: "A" };
 
 describe("TopNavbar", () => {
   beforeEach(() => {
@@ -29,7 +29,7 @@ describe("TopNavbar", () => {
 
   it("loads notifications and returns searchable API results", async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><TopNavbar user={admin} onToggleSidebar={jest.fn()} /></MemoryRouter>);
+    render(<MemoryRouter><TopNavbar user={manager} onToggleSidebar={jest.fn()} /></MemoryRouter>);
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/dashboard/notifications"), expect.anything()));
     await user.click(screen.getByRole("button", { name: /notifications/i }));

@@ -19,6 +19,7 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [requestError, setRequestError] = useState("");
+  const canViewAllSales = user.role !== "Cashier";
 
   const loadSaleHistory = useCallback(async () => {
     const token = getAuthToken();
@@ -43,18 +44,18 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
   useEffect(() => { void loadSaleHistory(); }, [loadSaleHistory]);
 
   const visibleSales = useMemo(() => sales.filter((sale) => {
-    const allowedForRole = user.role === "Admin" || sale.cashierEmail.toLowerCase() === user.email.toLowerCase();
+    const allowedForRole = canViewAllSales || sale.cashierEmail.toLowerCase() === user.email.toLowerCase();
     const searchable = `${sale.receiptNumber} ${sale.cashierName} ${sale.cashierEmail} ${sale.items.map((item) => item.productName).join(" ")}`.toLowerCase();
     const matchesQuery = searchable.includes(query.trim().toLowerCase());
     const matchesDate = !date || sale.createdAt.slice(0, 10) === date;
     return allowedForRole && matchesQuery && matchesDate;
-  }), [sales, user, query, date]);
+  }), [canViewAllSales, sales, user.email, query, date]);
 
   const totalValue = visibleSales.reduce((total, sale) => total + sale.totalAmount, 0);
 
   return (
     <div>
-      <div className="page-header"><h1>Sales History</h1><p>{user.role === "Admin" ? "Review all completed business transactions." : "Review the sales completed under your account."}</p></div>
+      <div className="page-header"><h1>Sales History</h1><p>{canViewAllSales ? "Review all completed business transactions." : "Review the sales completed under your account."}</p></div>
 
       <div className="history-summary">
         <div><span>Transactions</span><strong>{isLoading ? "—" : visibleSales.length}</strong></div>
@@ -71,16 +72,16 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
         </div>
 
         <div className="table-scroll"><table className="dashboard-table history-table">
-          <thead><tr><th>Receipt</th><th>Date</th>{user.role === "Admin" && <th>Cashier</th>}<th>Items</th><th>Total</th><th>Actions</th></tr></thead>
+          <thead><tr><th>Receipt</th><th>Date</th>{canViewAllSales && <th>Cashier</th>}<th>Items</th><th>Total</th><th>Actions</th></tr></thead>
           <tbody>
-            {isLoading && <tr><td colSpan={user.role === "Admin" ? 6 : 5} className="empty-table">Loading sales history...</td></tr>}
+            {isLoading && <tr><td colSpan={canViewAllSales ? 6 : 5} className="empty-table">Loading sales history...</td></tr>}
             {!isLoading && !requestError && visibleSales.map((sale) => <Fragment key={sale.id}>
               <tr key={sale.id}>
                 <td><strong>{sale.receiptNumber}</strong></td><td>{formatDate(sale.createdAt)}</td>
-                {user.role === "Admin" && <td>{sale.cashierName}</td>}<td>{sale.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td><strong>{formatCurrency(sale.totalAmount)}</strong></td>
+                {canViewAllSales && <td>{sale.cashierName}</td>}<td>{sale.items.reduce((sum, item) => sum + item.quantity, 0)}</td><td><strong>{formatCurrency(sale.totalAmount)}</strong></td>
                 <td><div className="history-actions"><button type="button" onClick={() => setExpandedId(expandedId === sale.id ? null : sale.id)}>{expandedId === sale.id ? "Hide Details" : "View Details"}</button><Link to={`/dashboard/receipts/${sale.id}`}>Receipt</Link></div></td>
               </tr>
-              {expandedId === sale.id && <tr key={`${sale.id}-details`} className="sale-detail-row"><td colSpan={user.role === "Admin" ? 6 : 5}>
+              {expandedId === sale.id && <tr key={`${sale.id}-details`} className="sale-detail-row"><td colSpan={canViewAllSales ? 6 : 5}>
                 <div className="sale-detail-content"><h3>Transaction details</h3>
                   <table><thead><tr><th>Product</th><th>Unit price</th><th>Qty</th><th>Line total</th></tr></thead>
                     <tbody>{sale.items.map((item) => <tr key={item.productId}><td>{item.productName}</td><td>{formatCurrency(item.unitPrice)}</td><td>{item.quantity}</td><td>{formatCurrency(item.lineTotal)}</td></tr>)}</tbody>
@@ -88,7 +89,7 @@ const SalesHistory = ({ user }: SalesHistoryProps) => {
                 </div>
               </td></tr>}
             </Fragment>)}
-            {!isLoading && !requestError && visibleSales.length === 0 && <tr><td colSpan={user.role === "Admin" ? 6 : 5} className="empty-table">No sales match your filters.</td></tr>}
+            {!isLoading && !requestError && visibleSales.length === 0 && <tr><td colSpan={canViewAllSales ? 6 : 5} className="empty-table">No sales match your filters.</td></tr>}
           </tbody>
         </table></div>
       </section>

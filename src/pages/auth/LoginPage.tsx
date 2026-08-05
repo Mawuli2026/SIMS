@@ -49,7 +49,7 @@ const LoginPage: React.FC = () => {
     try {
       const result = await loginAccount(formValues);
       saveSession(result.token, result.user);
-      navigate('/dashboard', { replace: true });
+      navigate(result.user.mustChangePassword ? '/change-password' : '/dashboard', { replace: true });
     } catch (error) {
       setServerError(error instanceof Error ? error.message : 'Login failed. Please try again.');
     } finally {
@@ -97,9 +97,6 @@ const LoginPage: React.FC = () => {
 
           <LoadingButton isLoading={isLoading} type="submit">Log in</LoadingButton>
 
-          <p style={styles.ctaText}>
-            Don&apos;t have an account? <Link to="/register" style={styles.link}>Create account</Link>
-          </p>
         </form>
     </AuthLayout>
   );
@@ -168,12 +165,6 @@ const styles: Record<string, React.CSSProperties> = {
     borderRadius: '24px',
     boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)',
     padding: '12px',
-  },
-  ctaText: {
-    marginTop: '12px',
-    textAlign: 'center',
-    color: '#B9C9E6',
-    fontSize: '14px',
   },
   error: {
     display: 'block',

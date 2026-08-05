@@ -1,9 +1,9 @@
 import { Router } from "express";
 import { searchAll } from "../controllers/search.controller";
-import { authenticate } from "../middleware/auth.middleware";
+import { authenticate, requirePasswordChangeCompleted } from "../middleware/auth.middleware";
 
 const searchRouter = Router();
 
-searchRouter.get("/", authenticate, searchAll);
+searchRouter.get("/", authenticate, requirePasswordChangeCompleted, searchAll);
 
 export default searchRouter;

@@ -8,7 +8,7 @@ import { SaleProduct } from "../../../types/sale.types";
 
 const userProfile: UserProfile = {
   id: 1, firstName: "Alicia", lastName: "Ng", fullName: "Alicia Ng", email: "admin@sims.com",
-  role: "Admin", dateJoined: "2024-01-15", initial: "A",
+  role: "Manager", mustChangePassword: false, dateJoined: "2024-01-15", initial: "A",
 };
 
 const products: SaleProduct[] = [

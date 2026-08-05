@@ -6,11 +6,11 @@ import {
   updateProduct,
   updateProductStatus,
 } from "../controllers/product.controller";
-import { authenticate, authorizeRoles } from "../middleware/auth.middleware";
+import { authenticate, authorizeRoles, requirePasswordChangeCompleted } from "../middleware/auth.middleware";
 
 const productRouter = Router();
 
-productRouter.use(authenticate, authorizeRoles("Admin"));
+productRouter.use(authenticate, requirePasswordChangeCompleted, authorizeRoles("SystemAdmin", "Manager"));
 productRouter.get("/low-stock", listLowStockProducts);
 productRouter.get("/", listProducts);
 productRouter.post("/", createProduct);

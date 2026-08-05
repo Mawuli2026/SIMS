@@ -11,7 +11,10 @@ const sales: Sale[] = [
   { id: 2, receiptNumber: "SIMS-00000002", createdAt: "2026-07-18T10:00:00.000Z", cashierName: "Marcus Cole", cashierEmail: "cashier@sims.com", items: [{ productId: 3, productName: "Rice", unitPrice: 55, quantity: 1, lineTotal: 55 }], totalAmount: 55 },
 ];
 
-const makeUser = (role: "Admin" | "Cashier"): UserProfile => ({ id: 1, firstName: role === "Admin" ? "Alicia" : "Marcus", lastName: role === "Admin" ? "Ng" : "Cole", fullName: role === "Admin" ? "Alicia Ng" : "Marcus Cole", email: role === "Admin" ? "admin@sims.com" : "cashier@sims.com", role, dateJoined: "2026-01-01", initial: role[0] });
+const makeUser = (role: "SystemAdmin" | "Manager" | "Cashier"): UserProfile => {
+  const isCashier = role === "Cashier";
+  return { id: 1, firstName: isCashier ? "Marcus" : "Alicia", lastName: isCashier ? "Cole" : "Ng", fullName: isCashier ? "Marcus Cole" : "Alicia Ng", email: isCashier ? "cashier@sims.com" : "manager@sims.com", role, mustChangePassword: false, dateJoined: "2026-01-01", initial: isCashier ? "M" : "A" };
+};
 
 describe("SalesHistory", () => {
   beforeEach(() => {
@@ -28,9 +31,9 @@ describe("SalesHistory", () => {
     localStorage.clear();
   });
 
-  it("shows all sales to an admin and expands details", async () => {
+  it("shows all sales to a manager and expands details", async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><SalesHistory user={makeUser("Admin")} /></MemoryRouter>);
+    render(<MemoryRouter><SalesHistory user={makeUser("Manager")} /></MemoryRouter>);
     expect(await screen.findByText("SIMS-00000001")).toBeInTheDocument();
     expect(screen.getByText("SIMS-00000002")).toBeInTheDocument();
     await user.click(screen.getAllByRole("button", { name: /view details/i })[0]);
@@ -46,7 +49,7 @@ describe("SalesHistory", () => {
 
   it("searches by product and filters the visible results", async () => {
     const user = userEvent.setup();
-    render(<MemoryRouter><SalesHistory user={makeUser("Admin")} /></MemoryRouter>);
+    render(<MemoryRouter><SalesHistory user={makeUser("Manager")} /></MemoryRouter>);
     await screen.findByText("SIMS-00000001");
     await user.type(screen.getByLabelText(/search sales/i), "Rice");
     expect(screen.getByText("SIMS-00000002")).toBeInTheDocument();
@@ -54,7 +57,7 @@ describe("SalesHistory", () => {
   });
 
   it("sends the authenticated request to the sales API", async () => {
-    render(<MemoryRouter><SalesHistory user={makeUser("Admin")} /></MemoryRouter>);
+    render(<MemoryRouter><SalesHistory user={makeUser("Manager")} /></MemoryRouter>);
     await screen.findByText("SIMS-00000001");
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/sales"), expect.objectContaining({
       headers: expect.objectContaining({ Authorization: "Bearer sales-token" }),

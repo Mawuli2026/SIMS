@@ -11,6 +11,7 @@ export const toUserProfile = (user: ApiUser): UserProfile => ({
   fullName: `${user.firstName} ${user.lastName}`.trim(),
   email: user.email,
   role: user.role,
+  mustChangePassword: user.mustChangePassword,
   dateJoined: new Date(user.createdAt).toLocaleDateString(),
   initial: user.firstName.charAt(0).toUpperCase(),
 });
@@ -27,7 +28,10 @@ export const getStoredUser = (): UserProfile | null => {
     const value = localStorage.getItem(AUTH_USER_KEY);
     if (!value) return null;
     const user = JSON.parse(value) as UserProfile;
-    return user.fullName && user.email && (user.role === "Admin" || user.role === "Cashier") ? user : null;
+    const validRole = user.role === "SystemAdmin" || user.role === "Manager" || user.role === "Cashier";
+    return user.fullName && user.email && validRole
+      ? { ...user, mustChangePassword: user.mustChangePassword === true }
+      : null;
   } catch {
     return null;
   }

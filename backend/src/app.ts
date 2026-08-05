@@ -4,8 +4,11 @@ import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
 import { checkDatabaseConnection } from "./config/db";
+import { getTrustProxyHops } from "./config/loginSecurity";
+import auditRouter from "./routes/audit.routes";
 import authRouter from "./routes/auth.routes";
 import dashboardRouter from "./routes/dashboard.routes";
+import employeeRouter from "./routes/employee.routes";
 import profileRouter from "./routes/profile.routes";
 import productRouter from "./routes/product.routes";
 import reportRouter from "./routes/report.routes";
@@ -13,6 +16,8 @@ import saleRouter from "./routes/sale.routes";
 import searchRouter from "./routes/search.routes";
 
 const app = express();
+const trustProxyHops = getTrustProxyHops();
+if (trustProxyHops > 0) app.set("trust proxy", trustProxyHops);
 
 app.disable("x-powered-by");
 app.use(helmet());
@@ -32,7 +37,9 @@ app.get("/api/health", async (_request: Request, response: Response) => {
 });
 
 app.use("/api/auth", authRouter);
+app.use("/api/audit-logs", auditRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/employees", employeeRouter);
 app.use("/api/profile", profileRouter);
 app.use("/api/products", productRouter);
 app.use("/api/reports", reportRouter);

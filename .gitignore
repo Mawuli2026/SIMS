@@ -3,5 +3,6 @@ dist/
 .vite/
 backend/.env
 backend/dist/
-.env
-.env.example
+.env/
+.env.example/
+.agents/

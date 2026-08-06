@@ -1,2 +1,8 @@
 .env
 .env.example
+node_modules/
+dist/
+.vite/
+backend/.env
+backend/dist/
+.agents/

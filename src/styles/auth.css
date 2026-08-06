@@ -9,6 +9,10 @@
   padding: clamp(16px, 3vw, 32px) 20px;
   overflow-y: auto;
   background-image: url('/Sims-background.png');
+  background-image: image-set(
+    url('/assets/media/sims-background-v1.webp') type('image/webp'),
+    url('/Sims-background.png') type('image/png')
+  );
   background-repeat: no-repeat;
   background-position: center;
   background-size: cover;
@@ -122,6 +126,11 @@
 @media (max-width: 480px) {
   .auth-page {
     padding: 12px;
+    background-image: url('/Sims-background.png');
+    background-image: image-set(
+      url('/assets/media/sims-background-768-v1.webp') type('image/webp'),
+      url('/Sims-background.png') type('image/png')
+    );
   }
 
   .auth-shell {

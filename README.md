@@ -157,8 +157,8 @@ Product management endpoints require an authenticated Manager or SystemAdmin tok
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/api/products` | List all active and inactive products |
-| `GET` | `/api/products/low-stock` | List active products at or below their reorder level |
+| `GET` | `/api/products?page=1&pageSize=20&q=` | Search and paginate active and inactive products |
+| `GET` | `/api/products/low-stock?page=1&pageSize=20&q=` | Search and paginate products at or below their reorder level |
 | `POST` | `/api/products` | Create an active product |
 | `PATCH` | `/api/products/:productId` | Update product and inventory details |
 | `PATCH` | `/api/products/:productId/status` | Activate or deactivate a product |
@@ -172,7 +172,7 @@ Sales endpoints accept authenticated SystemAdmin, Manager, and Cashier tokens. S
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/api/sales/products` | List active products available to the sales cart |
-| `GET` | `/api/sales` | List all sales for management roles or only the authenticated Cashier's sales |
+| `GET` | `/api/sales?page=1&pageSize=20&q=&date=YYYY-MM-DD` | Search and paginate role-scoped sales with filtered summary totals |
 | `GET` | `/api/sales/:saleId` | Retrieve a persisted receipt, with Cashier ownership enforced |
 | `POST` | `/api/sales` | Validate and permanently complete a sale |
 | `GET` | `/api/reports?fromDate=YYYY-MM-DD&toDate=YYYY-MM-DD` | Return Manager/SystemAdmin sales summaries and product/cashier performance |
@@ -234,3 +234,41 @@ cd backend
 npm test
 npm run typecheck
 ```
+
+## Performance and traffic
+
+SIMS serves deterministic WebP versions of the authentication background and logo, while retaining the original PNG files as compatibility fallbacks. Recreate the optimized assets after changing either source image with:
+
+```bash
+npm run optimize:images
+```
+
+The Products and Sales History APIs default to 20 records per page and cap `pageSize` at 100. Search and sale-date filters execute in PostgreSQL before pagination, so the UI does not download the entire inventory or transaction history. Express compresses responses larger than 512 bytes and marks API responses `Cache-Control: no-store` to prevent authenticated business data from being cached by shared proxies.
+
+For the existing Render Static Site, add this custom header in **Settings > Headers** so Vite's hashed `/assets/*` files can be reused without revalidation:
+
+| Path | Header | Value |
+| --- | --- | --- |
+| `/assets/*` | `Cache-Control` | `public, max-age=31536000, immutable` |
+
+Do not apply that immutable rule to `/index.html`, because the HTML file points to the newest hashed JavaScript and CSS after every deployment.
+
+Run a bounded read-only load test against a local backend health endpoint with:
+
+```bash
+cd backend
+npm run load:test
+```
+
+Override the defaults in PowerShell when testing a protected read endpoint:
+
+```powershell
+$env:LOAD_TEST_URL="http://localhost:5000/api/dashboard"
+$env:LOAD_TEST_REQUESTS="50"
+$env:LOAD_TEST_CONCURRENCY="5"
+$env:LOAD_TEST_TOKEN="your-short-lived-test-token"
+npm run load:test
+Remove-Item Env:LOAD_TEST_URL, Env:LOAD_TEST_REQUESTS, Env:LOAD_TEST_CONCURRENCY, Env:LOAD_TEST_TOKEN
+```
+
+The script allows only `GET` traffic, caps the run at 500 requests and concurrency at 50, and reports status counts, throughput, received response-body bytes, and minimum/median/p95/maximum latency. Use a dedicated test account and avoid load-testing production during business hours.

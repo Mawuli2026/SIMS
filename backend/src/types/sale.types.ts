@@ -1,3 +1,5 @@
+import { PaginationOptions } from "./pagination.types";
+
 export interface CreateSaleItemInput {
   productId: number;
   quantity: number;
@@ -31,4 +33,19 @@ export interface SavedSale {
   cashierEmail: string;
   items: SavedSaleItem[];
   totalAmount: number;
+}
+
+export interface SalesListOptions extends PaginationOptions {
+  date: string;
+}
+
+export interface SalesSummary {
+  transactionCount: number;
+  totalValue: number;
+}
+
+export interface SalesListResult {
+  sales: SavedSale[];
+  totalItems: number;
+  summary: SalesSummary;
 }

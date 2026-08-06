@@ -61,7 +61,10 @@ const LoginPage: React.FC = () => {
     <AuthLayout title="">
       <div style={styles.header}>
         <div style={styles.logoContainer}>
-          <img src="/sims-logo.png" alt="SIMS logo" style={styles.logo} />
+          <picture>
+            <source srcSet="/assets/media/sims-logo-v1.webp" type="image/webp" />
+            <img src="/sims-logo.png" alt="SIMS logo" width="110" height="55" style={styles.logo} />
+          </picture>
         </div>
         <p style={styles.subtitle}>Sign in with your email and password to access the dashboard.</p>
       </div>

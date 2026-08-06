@@ -1,3 +1,5 @@
+import { PaginationMeta, PaginationRequest } from "./pagination.types";
+
 export interface CartItem {
   productId: number;
   productName: string;
@@ -47,6 +49,15 @@ export interface CreateSaleResponse {
 
 export interface SalesResponse {
   sales: Sale[];
+  pagination?: PaginationMeta;
+  summary?: {
+    transactionCount: number;
+    totalValue: number;
+  };
+}
+
+export interface SalesRequest extends PaginationRequest {
+  date?: string;
 }
 
 export interface SaleResponse {

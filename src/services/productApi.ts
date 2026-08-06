@@ -5,6 +5,7 @@ import {
   ProductStatus,
 } from "../types/product.types";
 import { apiRequest, bearerHeaders } from "./apiClient";
+import { PaginationRequest } from "../types/pagination.types";
 
 const authenticatedRequest = <T>(path: string, token: string, options: RequestInit = {}) =>
   apiRequest<T>(path, {
@@ -12,11 +13,20 @@ const authenticatedRequest = <T>(path: string, token: string, options: RequestIn
     headers: { ...bearerHeaders(token), ...options.headers },
   });
 
-export const getProducts = (token: string) =>
-  authenticatedRequest<ProductsResponse>("/api/products", token);
+const productListPath = (path: string, options: PaginationRequest) => {
+  const query = new URLSearchParams();
+  if (options.page) query.set("page", String(options.page));
+  if (options.pageSize) query.set("pageSize", String(options.pageSize));
+  if (options.query?.trim()) query.set("q", options.query.trim());
+  const encoded = query.toString();
+  return `${path}${encoded ? `?${encoded}` : ""}`;
+};
 
-export const getLowStockProducts = (token: string) =>
-  authenticatedRequest<ProductsResponse>("/api/products/low-stock", token);
+export const getProducts = (token: string, options: PaginationRequest = {}) =>
+  authenticatedRequest<ProductsResponse>(productListPath("/api/products", options), token);
+
+export const getLowStockProducts = (token: string, options: PaginationRequest = {}) =>
+  authenticatedRequest<ProductsResponse>(productListPath("/api/products/low-stock", options), token);
 
 export const createProduct = (token: string, values: ProductFormValues) =>
   authenticatedRequest<ProductMutationResponse>("/api/products", token, {

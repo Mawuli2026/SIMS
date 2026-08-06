@@ -52,7 +52,10 @@ const Sidebar = ({ role, isOpen, onNavigate }: SidebarProps) => {
     <aside className={`sidebar ${isOpen ? "sidebar-open" : "sidebar-closed"}`}>
       <div className="sidebar-logo">
         <div className="logo-box">
-          <img src="/sims-logo.png" alt="SIMS logo" />
+          <picture>
+            <source srcSet="/assets/media/sims-logo-v1.webp" type="image/webp" />
+            <img src="/sims-logo.png" alt="SIMS logo" width="42" height="21" />
+          </picture>
         </div>
         {isOpen && <div><h2>SIMS</h2><p>Sales &amp; Inventory</p></div>}
       </div>

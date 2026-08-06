@@ -1,5 +1,6 @@
 import "dotenv/config";
 import cors from "cors";
+import compression from "compression";
 import express, { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
@@ -22,6 +23,11 @@ if (trustProxyHops > 0) app.set("trust proxy", trustProxyHops);
 app.disable("x-powered-by");
 app.use(helmet());
 app.use(cors({ origin: process.env.CLIENT_URL ?? "http://localhost:5173" }));
+app.use(compression({ threshold: 512 }));
+app.use("/api", (_request: Request, response: Response, next: NextFunction) => {
+  response.setHeader("Cache-Control", "no-store");
+  next();
+});
 app.use(express.json({ limit: "100kb" }));
 if (process.env.NODE_ENV !== "test") {
   app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));

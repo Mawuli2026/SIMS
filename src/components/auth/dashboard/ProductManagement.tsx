@@ -9,6 +9,8 @@ import {
   updateProduct,
   updateProductStatus,
 } from "../../../services/productApi";
+import { PaginationMeta } from "../../../types/pagination.types";
+import PaginationControls from "./PaginationControls";
 
 interface ProductManagementProps { lowStockOnly?: boolean; }
 
@@ -22,12 +24,18 @@ const isLowStock = (product: Product) =>
 const sortProducts = (products: Product[]) => [...products].sort((first, second) =>
   first.name.localeCompare(second.name) || first.id - second.id);
 
+const PAGE_SIZE = 20;
+const initialPagination: PaginationMeta = { page: 1, pageSize: PAGE_SIZE, totalItems: 0, totalPages: 0 };
+
 const ProductManagement = ({ lowStockOnly = false }: ProductManagementProps) => {
   const [products, setProducts] = useState<Product[]>([]);
   const [form, setForm] = useState<ProductFormValues>(emptyForm);
   const [editingId, setEditingId] = useState<number | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState<PaginationMeta>(initialPagination);
   const [formError, setFormError] = useState("");
   const [requestError, setRequestError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -45,14 +53,29 @@ const ProductManagement = ({ lowStockOnly = false }: ProductManagementProps) => 
     setIsLoading(true);
     setRequestError("");
     try {
-      const response = lowStockOnly ? await getLowStockProducts(token) : await getProducts(token);
+      const options = { page, pageSize: PAGE_SIZE, query: debouncedQuery };
+      const response = lowStockOnly ? await getLowStockProducts(token, options) : await getProducts(token, options);
       setProducts(response.products);
+      setPagination(response.pagination ?? {
+        page,
+        pageSize: PAGE_SIZE,
+        totalItems: response.products.length,
+        totalPages: response.products.length ? 1 : 0,
+      });
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : "Unable to load products.");
     } finally {
       setIsLoading(false);
     }
-  }, [lowStockOnly]);
+  }, [debouncedQuery, lowStockOnly, page]);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setPage(1);
+      setDebouncedQuery(query.trim());
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [query]);
 
   useEffect(() => { void loadProductData(); }, [loadProductData]);
 
@@ -110,6 +133,12 @@ const ProductManagement = ({ lowStockOnly = false }: ProductManagementProps) => 
         ? await createProduct(token, values)
         : await updateProduct(token, editingId, values);
       mergeSavedProduct(response.product);
+      if (editingId === null) {
+        setPagination((current) => {
+          const totalItems = current.totalItems + 1;
+          return { ...current, totalItems, totalPages: Math.ceil(totalItems / current.pageSize) };
+        });
+      }
       setShowForm(false); setForm(emptyForm); setEditingId(null);
     } catch (error) {
       setFormError(error instanceof Error ? error.message : "Unable to save the product.");
@@ -152,7 +181,7 @@ const ProductManagement = ({ lowStockOnly = false }: ProductManagementProps) => 
       <section className="dashboard-panel">
         <div className="product-toolbar">
           <input aria-label="Search products" placeholder="Search by product or category..." value={query} onChange={(event) => setQuery(event.target.value)} />
-          <span className="product-count">{visibleProducts.length} product{visibleProducts.length === 1 ? "" : "s"}</span>
+          <span className="product-count">{pagination.totalItems} product{pagination.totalItems === 1 ? "" : "s"}</span>
         </div>
 
         {requestError && <div className="product-request-error" role="alert"><span>{requestError}</span>
@@ -177,6 +206,8 @@ const ProductManagement = ({ lowStockOnly = false }: ProductManagementProps) => 
             </tbody>
           </table>
         </div>}
+        {!isLoading && !requestError && <PaginationControls pagination={pagination} itemLabel="product"
+          onPageChange={(nextPage) => { setPage(nextPage); setPendingProductId(null); }} />}
       </section>
 
       {showForm && <div className="modal-backdrop" role="presentation">

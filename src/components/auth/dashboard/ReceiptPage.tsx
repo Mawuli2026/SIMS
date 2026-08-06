@@ -63,7 +63,10 @@ const ReceiptPage = ({ saleId }: ReceiptPageProps) => {
 
       <article className="receipt-container" aria-label={`Receipt ${sale.receiptNumber}`}>
         <header className="receipt-header">
-          <img src="/sims-logo.png" alt="SIMS logo" />
+          <picture>
+            <source srcSet="/assets/media/sims-logo-v1.webp" type="image/webp" />
+            <img src="/sims-logo.png" alt="SIMS logo" width="58" height="29" />
+          </picture>
           <div><h1>Sales Receipt</h1><p>Sales &amp; Inventory Management System</p></div>
         </header>
 

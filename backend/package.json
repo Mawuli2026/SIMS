@@ -8,13 +8,15 @@
     "typecheck": "tsc --noEmit",
     "migrate": "npm run build && node dist/scripts/run-migrations.js",
     "bootstrap:system-admin": "npm run build && node dist/scripts/bootstrap-system-admin.js",
-    "test": "npm run build && node --test --test-concurrency=1 tests/passwordReset.test.cjs tests/emailDelivery.test.cjs tests/tokenVersion.test.cjs tests/loginSecurity.test.cjs tests/authMiddleware.test.cjs tests/dashboardService.test.cjs tests/productValidation.test.cjs tests/saleTransaction.test.cjs tests/reportValidation.test.cjs tests/bootstrapSystemAdmin.test.cjs tests/employeeValidation.test.cjs tests/authApi.integration.test.cjs",
-    "test:unit": "npm run build && node --test tests/passwordReset.test.cjs tests/emailDelivery.test.cjs tests/tokenVersion.test.cjs tests/loginSecurity.test.cjs tests/authMiddleware.test.cjs tests/dashboardService.test.cjs tests/productValidation.test.cjs tests/saleTransaction.test.cjs tests/reportValidation.test.cjs tests/bootstrapSystemAdmin.test.cjs tests/employeeValidation.test.cjs",
+    "test": "npm run build && node --test --test-concurrency=1 tests/passwordReset.test.cjs tests/emailDelivery.test.cjs tests/tokenVersion.test.cjs tests/loginSecurity.test.cjs tests/authMiddleware.test.cjs tests/dashboardService.test.cjs tests/productValidation.test.cjs tests/pagination.test.cjs tests/loadTest.test.cjs tests/saleTransaction.test.cjs tests/reportValidation.test.cjs tests/bootstrapSystemAdmin.test.cjs tests/employeeValidation.test.cjs tests/authApi.integration.test.cjs",
+    "test:unit": "npm run build && node --test tests/passwordReset.test.cjs tests/emailDelivery.test.cjs tests/tokenVersion.test.cjs tests/loginSecurity.test.cjs tests/authMiddleware.test.cjs tests/dashboardService.test.cjs tests/productValidation.test.cjs tests/pagination.test.cjs tests/loadTest.test.cjs tests/saleTransaction.test.cjs tests/reportValidation.test.cjs tests/bootstrapSystemAdmin.test.cjs tests/employeeValidation.test.cjs",
     "test:integration": "npm run build && node --test --test-concurrency=1 tests/authApi.integration.test.cjs",
+    "load:test": "node scripts/load-test.mjs",
     "start": "node dist/server.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
@@ -26,6 +28,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/compression": "^1.8.1",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/jsonwebtoken": "^9.0.10",

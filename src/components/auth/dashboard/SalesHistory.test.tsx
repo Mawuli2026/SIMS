@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import SalesHistory from "./SalesHistory";
@@ -62,5 +62,29 @@ describe("SalesHistory", () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/sales"), expect.objectContaining({
       headers: expect.objectContaining({ Authorization: "Bearer sales-token" }),
     }));
+  });
+
+  it("requests the next sales page and keeps summary totals from the API", async () => {
+    jest.mocked(fetch).mockImplementation(async (input) => {
+      const secondPage = String(input).includes("page=2");
+      return {
+        ok: true,
+        status: 200,
+        json: async () => ({
+          sales: [secondPage ? sales[1] : sales[0]],
+          pagination: { page: secondPage ? 2 : 1, pageSize: 20, totalItems: 21, totalPages: 2 },
+          summary: { transactionCount: 21, totalValue: 875 },
+        }),
+      } as Response;
+    });
+
+    const user = userEvent.setup();
+    render(<MemoryRouter><SalesHistory user={makeUser("Manager")} /></MemoryRouter>);
+    expect(await screen.findByText("SIMS-00000001")).toBeInTheDocument();
+    expect(screen.getByText("21")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByText("SIMS-00000002")).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("page=2"), expect.anything()));
   });
 });

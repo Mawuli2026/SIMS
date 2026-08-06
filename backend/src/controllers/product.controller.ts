@@ -11,6 +11,7 @@ import { ProductInput } from "../types/product.types";
 import { AuditAction } from "../types/audit.types";
 import { firstValidationError, productSchema, productStatusSchema } from "../utils/validation";
 import { getAuditRequestContext, recordAuditEvent } from "../services/audit.service";
+import { createPaginationMeta, parsePaginationQuery } from "../utils/pagination";
 
 const parseProductId = (value: string): number | null => {
   const id = Number(value);
@@ -42,17 +43,27 @@ const auditProductMutation = (
   });
 };
 
-export const listProducts = async (_request: Request, response: Response, next: NextFunction) => {
+export const listProducts = async (request: Request, response: Response, next: NextFunction) => {
   try {
-    response.status(200).json({ products: await getProducts() });
+    const options = parsePaginationQuery(request.query as Record<string, unknown>);
+    const result = await getProducts(options);
+    response.status(200).json({
+      products: result.products,
+      pagination: createPaginationMeta(result.totalItems, options.page, options.pageSize),
+    });
   } catch (error) {
     next(error);
   }
 };
 
-export const listLowStockProducts = async (_request: Request, response: Response, next: NextFunction) => {
+export const listLowStockProducts = async (request: Request, response: Response, next: NextFunction) => {
   try {
-    response.status(200).json({ products: await getLowStockProducts() });
+    const options = parsePaginationQuery(request.query as Record<string, unknown>);
+    const result = await getLowStockProducts(options);
+    response.status(200).json({
+      products: result.products,
+      pagination: createPaginationMeta(result.totalItems, options.page, options.pageSize),
+    });
   } catch (error) {
     next(error);
   }

@@ -1,7 +1,14 @@
 import { PoolClient } from "pg";
 import { pool, query } from "../config/db";
 import { UserRole } from "../types/auth.types";
-import { CreateSaleInput, SaleProduct, SavedSale, SavedSaleItem } from "../types/sale.types";
+import {
+  CreateSaleInput,
+  SaleProduct,
+  SalesListOptions,
+  SalesListResult,
+  SavedSale,
+  SavedSaleItem,
+} from "../types/sale.types";
 
 export class SaleServiceError extends Error {
   constructor(message: string, public readonly statusCode: number) {
@@ -46,6 +53,11 @@ interface HistoricalSaleItemRow {
   unit_price: string;
   quantity: number;
   line_total: string;
+}
+
+interface SalesSummaryRow {
+  transaction_count: string;
+  total_value: string;
 }
 
 const maximumMoneyInCents = 999_999_999_999;
@@ -116,19 +128,57 @@ const toSavedSale = (row: SaleHeaderRow, items: SavedSaleItem[]): SavedSale => (
   totalAmount: Number(row.total_amount),
 });
 
-export const getSales = async (role: UserRole, userId: number): Promise<SavedSale[]> => {
-  const roleFilter = role === "Cashier" ? "WHERE sales.cashier_id = $1" : "";
-  const result = await query<SaleHeaderRow>(
-    `SELECT sales.id, sales.total_amount, sales.created_at,
-            users.first_name, users.last_name, users.email
-     FROM sales
-     JOIN users ON users.id = sales.cashier_id
-     ${roleFilter}
-     ORDER BY sales.created_at DESC, sales.id DESC`,
-    role === "Cashier" ? [userId] : [],
-  );
-  const itemsBySale = await getItemsForSales(result.rows.map((sale) => sale.id));
-  return result.rows.map((sale) => toSavedSale(sale, itemsBySale.get(sale.id) ?? []));
+export const getSales = async (
+  role: UserRole,
+  userId: number,
+  { page, pageSize, searchQuery, date }: SalesListOptions,
+): Promise<SalesListResult> => {
+  const cashierId = role === "Cashier" ? userId : null;
+  const offset = (page - 1) * pageSize;
+  const filters = `WHERE ($1::int IS NULL OR sales.cashier_id = $1)
+    AND ($2::text IS NULL
+      OR CONCAT_WS(' ', users.first_name, users.last_name, users.email) ILIKE '%' || $2 || '%'
+      OR ('SIMS-' || LPAD(RIGHT(sales.id::text, 8), 8, '0')) ILIKE '%' || $2 || '%'
+      OR EXISTS (
+        SELECT 1 FROM sale_items matching_items
+        WHERE matching_items.sale_id = sales.id
+          AND matching_items.product_name ILIKE '%' || $2 || '%'
+      ))
+    AND ($3::date IS NULL
+      OR (sales.created_at >= $3::date AND sales.created_at < $3::date + INTERVAL '1 day'))`;
+  const filterParams = [cashierId, searchQuery || null, date || null];
+
+  const [salesResult, summaryResult] = await Promise.all([
+    query<SaleHeaderRow>(
+      `SELECT sales.id, sales.total_amount, sales.created_at,
+              users.first_name, users.last_name, users.email
+       FROM sales
+       JOIN users ON users.id = sales.cashier_id
+       ${filters}
+       ORDER BY sales.created_at DESC, sales.id DESC
+       LIMIT $4 OFFSET $5`,
+      [...filterParams, pageSize, offset],
+    ),
+    query<SalesSummaryRow>(
+      `SELECT COUNT(*) AS transaction_count,
+              COALESCE(SUM(sales.total_amount), 0) AS total_value
+       FROM sales
+       JOIN users ON users.id = sales.cashier_id
+       ${filters}`,
+      filterParams,
+    ),
+  ]);
+  const itemsBySale = await getItemsForSales(salesResult.rows.map((sale) => sale.id));
+  const summary = summaryResult.rows[0];
+
+  return {
+    sales: salesResult.rows.map((sale) => toSavedSale(sale, itemsBySale.get(sale.id) ?? [])),
+    totalItems: Number(summary.transaction_count),
+    summary: {
+      transactionCount: Number(summary.transaction_count),
+      totalValue: Number(summary.total_value),
+    },
+  };
 };
 
 export const getSaleById = async (saleId: number, role: UserRole, userId: number): Promise<SavedSale> => {

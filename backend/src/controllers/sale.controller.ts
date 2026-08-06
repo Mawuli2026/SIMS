@@ -9,6 +9,15 @@ import {
 import { CreateSaleInput } from "../types/sale.types";
 import { createSaleSchema, firstValidationError } from "../utils/validation";
 import { getAuditRequestContext, recordAuditEvent } from "../services/audit.service";
+import { createPaginationMeta, parsePaginationQuery } from "../utils/pagination";
+
+const parseDateQuery = (value: unknown): string | null => {
+  const date = typeof value === "string" ? value.trim() : "";
+  if (!date) return "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  return Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== date ? null : date;
+};
 
 export const listSaleProducts = async (_request: Request, response: Response, next: NextFunction) => {
   try {
@@ -30,8 +39,18 @@ export const listSales = async (request: Request, response: Response, next: Next
   }
 
   try {
-    const sales = await getSales(request.authUser.role, request.authUser.id);
-    response.status(200).json({ sales });
+    const options = parsePaginationQuery(request.query as Record<string, unknown>);
+    const date = parseDateQuery(request.query.date);
+    if (date === null) {
+      response.status(400).json({ message: "Sale date must use the YYYY-MM-DD format." });
+      return;
+    }
+    const result = await getSales(request.authUser.role, request.authUser.id, { ...options, date });
+    response.status(200).json({
+      sales: result.sales,
+      summary: result.summary,
+      pagination: createPaginationMeta(result.totalItems, options.page, options.pageSize),
+    });
   } catch (error) {
     next(error);
   }

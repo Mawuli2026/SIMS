@@ -102,4 +102,23 @@ describe("ProductManagement", () => {
       body: JSON.stringify({ status: "Inactive" }),
     })));
   });
+
+  it("requests the next product page instead of downloading the full inventory", async () => {
+    const soap: Product = { ...sugar, id: 2, name: "Soap", category: "Household" };
+    jest.spyOn(global, "fetch").mockImplementation(async (input) => {
+      const secondPage = String(input).includes("page=2");
+      return response({
+        products: [secondPage ? soap : sugar],
+        pagination: { page: secondPage ? 2 : 1, pageSize: 20, totalItems: 21, totalPages: 2 },
+      });
+    });
+
+    const user = userEvent.setup();
+    render(<MemoryRouter><ProductManagement /></MemoryRouter>);
+    expect(await screen.findByText("Sugar")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByText("Soap")).toBeInTheDocument();
+    await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("page=2"), expect.anything()));
+  });
 });

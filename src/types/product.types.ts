@@ -1,3 +1,5 @@
+import { PaginationMeta } from "./pagination.types";
+
 export type ProductStatus = "Active" | "Inactive";
 
 export interface Product {
@@ -15,6 +17,7 @@ export type ProductFormValues = Omit<Product, "id" | "status">;
 
 export interface ProductsResponse {
   products: Product[];
+  pagination?: PaginationMeta;
 }
 
 export interface ProductMutationResponse {

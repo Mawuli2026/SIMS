@@ -158,6 +158,7 @@ const apiRequest = async (route, { method = "GET", body, token } = {}) => {
 
   return {
     status: response.status,
+    headers: response.headers,
     body: await response.json(),
   };
 };
@@ -316,6 +317,7 @@ test("me requires a valid JWT and returns the authenticated user", async () => {
 
   const currentUser = await apiRequest("/api/auth/me", { token: loggedIn.body.token });
   assert.equal(currentUser.status, 200);
+  assert.equal(currentUser.headers.get("cache-control"), "no-store");
   assert.equal(currentUser.body.user.email, validUser.email);
   assert.equal(currentUser.body.user.role, "Manager");
   assert.equal("passwordHash" in currentUser.body.user, false);
@@ -344,6 +346,7 @@ test("the one-time bootstrap creates a SystemAdmin with management access", asyn
 
   const products = await apiRequest("/api/products", { token: loggedIn.body.token });
   assert.equal(products.status, 200);
+  assert.deepEqual(products.body.pagination, { page: 1, pageSize: 20, totalItems: 0, totalPages: 0 });
 });
 
 test("SystemAdmin manages employees while Manager access and disabled accounts are blocked", async () => {
@@ -792,6 +795,11 @@ test("sales, receipts, reports, and receipt search use persisted PostgreSQL tran
   });
   assert.equal(createdProduct.status, 201);
 
+  const productPage = await apiRequest("/api/products?q=Rice&page=1&pageSize=1", { token });
+  assert.equal(productPage.status, 200);
+  assert.equal(productPage.body.products[0].name, "Rice");
+  assert.deepEqual(productPage.body.pagination, { page: 1, pageSize: 1, totalItems: 1, totalPages: 1 });
+
   const checkout = await apiRequest("/api/sales", {
     method: "POST",
     token,
@@ -806,6 +814,21 @@ test("sales, receipts, reports, and receipt search use persisted PostgreSQL tran
   assert.equal(history.status, 200);
   assert.equal(history.body.sales.length, 1);
   assert.equal(history.body.sales[0].receiptNumber, checkout.body.sale.receiptNumber);
+  assert.deepEqual(history.body.pagination, { page: 1, pageSize: 20, totalItems: 1, totalPages: 1 });
+  assert.deepEqual(history.body.summary, { transactionCount: 1, totalValue: 110 });
+
+  const filteredHistory = await apiRequest("/api/sales?q=Rice&page=1&pageSize=1", { token });
+  assert.equal(filteredHistory.status, 200);
+  assert.equal(filteredHistory.body.sales.length, 1);
+  assert.equal(filteredHistory.body.pagination.pageSize, 1);
+
+  const emptyHistory = await apiRequest("/api/sales?q=Not-A-Sold-Product", { token });
+  assert.equal(emptyHistory.status, 200);
+  assert.equal(emptyHistory.body.sales.length, 0);
+  assert.equal(emptyHistory.body.pagination.totalItems, 0);
+
+  const invalidSaleDate = await apiRequest("/api/sales?date=06-08-2026", { token });
+  assert.equal(invalidSaleDate.status, 400);
 
   await apiRequest(`/api/products/${createdProduct.body.product.id}`, {
     method: "PATCH",

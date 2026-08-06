@@ -1,4 +1,5 @@
-import { query } from "../config/db";
+import { query as dbQuery } from "../config/db";
+import { PaginationOptions } from "../types/pagination.types";
 import { Product, ProductInput, ProductRow, ProductStatus } from "../types/product.types";
 
 export class ProductServiceError extends Error {
@@ -6,6 +7,15 @@ export class ProductServiceError extends Error {
     super(message);
     this.name = "ProductServiceError";
   }
+}
+
+interface ProductListResult {
+  products: Product[];
+  totalItems: number;
+}
+
+interface ProductCountRow {
+  total: string;
 }
 
 const productColumns = `id, name, category, cost_price, selling_price,
@@ -22,28 +32,50 @@ export const toProduct = (row: ProductRow): Product => ({
   status: row.status === "active" ? "Active" : "Inactive",
 });
 
-export const getProducts = async (): Promise<Product[]> => {
-  const result = await query<ProductRow>(
-    `SELECT ${productColumns}
-     FROM products
-     ORDER BY name ASC, id ASC`,
-  );
-  return result.rows.map(toProduct);
+const listProducts = async (
+  { page, pageSize, searchQuery }: PaginationOptions,
+  lowStockOnly: boolean,
+): Promise<ProductListResult> => {
+  const lowStockFilter = lowStockOnly
+    ? "AND status = 'active' AND quantity_in_stock <= reorder_level"
+    : "";
+  const searchFilter = "($1::text IS NULL OR name ILIKE '%' || $1 || '%' OR category ILIKE '%' || $1 || '%')";
+  const offset = (page - 1) * pageSize;
+  const params = [searchQuery || null, pageSize, offset];
+
+  const [productsResult, countResult] = await Promise.all([
+    dbQuery<ProductRow>(
+      `SELECT ${productColumns}
+       FROM products
+       WHERE ${searchFilter}
+         ${lowStockFilter}
+       ORDER BY ${lowStockOnly ? "quantity_in_stock ASC," : ""} name ASC, id ASC
+       LIMIT $2 OFFSET $3`,
+      params,
+    ),
+    dbQuery<ProductCountRow>(
+      `SELECT COUNT(*) AS total
+       FROM products
+       WHERE ${searchFilter}
+         ${lowStockFilter}`,
+      [searchQuery || null],
+    ),
+  ]);
+
+  return {
+    products: productsResult.rows.map(toProduct),
+    totalItems: Number(countResult.rows[0].total),
+  };
 };
 
-export const getLowStockProducts = async (): Promise<Product[]> => {
-  const result = await query<ProductRow>(
-    `SELECT ${productColumns}
-     FROM products
-     WHERE status = 'active'
-       AND quantity_in_stock <= reorder_level
-     ORDER BY quantity_in_stock ASC, name ASC`,
-  );
-  return result.rows.map(toProduct);
-};
+export const getProducts = (options: PaginationOptions): Promise<ProductListResult> =>
+  listProducts(options, false);
+
+export const getLowStockProducts = (options: PaginationOptions): Promise<ProductListResult> =>
+  listProducts(options, true);
 
 export const createProduct = async (input: ProductInput): Promise<Product> => {
-  const result = await query<ProductRow>(
+  const result = await dbQuery<ProductRow>(
     `INSERT INTO products (
        name, category, cost_price, selling_price, quantity_in_stock, reorder_level
      )
@@ -55,7 +87,7 @@ export const createProduct = async (input: ProductInput): Promise<Product> => {
 };
 
 export const updateProduct = async (productId: number, input: ProductInput): Promise<Product> => {
-  const result = await query<ProductRow>(
+  const result = await dbQuery<ProductRow>(
     `UPDATE products
      SET name = $1,
          category = $2,
@@ -74,7 +106,7 @@ export const updateProduct = async (productId: number, input: ProductInput): Pro
 };
 
 export const updateProductStatus = async (productId: number, status: ProductStatus): Promise<Product> => {
-  const result = await query<ProductRow>(
+  const result = await dbQuery<ProductRow>(
     `UPDATE products
      SET status = $1,
          updated_at = CURRENT_TIMESTAMP

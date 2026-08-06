@@ -84,9 +84,17 @@ body {
 .session-screen h1, .session-screen p { margin: 0; }
 .session-spinner { width: 30px; height: 30px; border: 3px solid #bfdbfe; border-top-color: var(--primary); border-radius: 50%; animation: spin .75s linear infinite; }
 
+.logo-box picture,
 .logo-box img {
   width: 100%;
   height: 100%;
+}
+
+.logo-box picture {
+  display: block;
+}
+
+.logo-box img {
   object-fit: contain;
 }
 
@@ -640,6 +648,11 @@ body {
 .product-toolbar input { width: min(380px, 70%); padding: 11px 13px; border: 1px solid var(--border); border-radius: 11px; font-size: 14px; }
 .product-count { color: var(--text-light); font-size: 12px; font-weight: 500; }
 .table-scroll { overflow-x: auto; }
+.pagination-controls { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border); }
+.pagination-controls p { margin: 0; color: var(--text-light); font-size: 13px; }
+.pagination-controls > div { display: flex; align-items: center; gap: 10px; }
+.pagination-controls span { min-width: 96px; color: var(--text-dark); font-size: 13px; font-weight: 600; text-align: center; }
+.pagination-controls button { padding: 8px 12px; }
 .low-stock-row { background: #fff7ed; }
 .badge-success, .badge-muted { display: inline-block; padding: 5px 9px; border-radius: 999px; font-size: 12px; font-weight: 500; margin-right: 5px; }
 .badge-success { background: #dcfce7; color: #166534; }
@@ -733,7 +746,8 @@ body {
 .receipt-back { display: inline-block; text-decoration: none; }
 .receipt-container { overflow: hidden; border: 1px solid var(--border); border-radius: 18px; background: #fff; box-shadow: var(--shadow); }
 .receipt-header { display: flex; align-items: center; gap: 16px; padding: 24px 28px; border-bottom: 3px solid var(--primary); background: linear-gradient(110deg, #dbeafe, #fff); }
-.receipt-header img { width: 58px; height: 58px; object-fit: contain; padding: 5px; border-radius: 12px; background: #fff; }
+.receipt-header picture { display: grid; flex: 0 0 58px; width: 58px; height: 58px; place-items: center; overflow: hidden; border-radius: 12px; background: #fff; }
+.receipt-header img { width: 100%; height: auto; object-fit: contain; padding: 5px; }
 .receipt-header h1 { margin: 0; color: var(--text-dark); font-size: 28px; font-weight: 700; }
 .receipt-header p { margin: 4px 0 0; color: var(--text-light); font-size: 14px; }
 .receipt-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; padding: 24px 28px; border-bottom: 1px solid var(--border); }
@@ -1145,6 +1159,15 @@ body {
   .receipt-actions {
     align-items: stretch;
     flex-direction: column;
+  }
+
+  .pagination-controls {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .pagination-controls > div {
+    justify-content: space-between;
   }
 
   .search-result-groups small {

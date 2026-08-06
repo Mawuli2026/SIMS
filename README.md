@@ -38,7 +38,7 @@ Public account registration is not available. The first SystemAdmin is created d
 
 #### Sign in
 
-1. Open the SIMS web address supplied by the system owner. For local use, this is normally `http://localhost:5173/login`.
+1. Open the SIMS web address supplied by the system owner. For local use, this is normally `http://localhost:5173/login`. Sims website:https://sims-h7s2.onrender.com
 2. Enter your employee email address and password.
 3. Select **Log in**.
 4. SIMS opens the dashboard permitted for your role.

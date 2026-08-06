@@ -46,7 +46,7 @@ const ManagerDashboard = ({ role }: ManagerDashboardProps) => {
       <div className="dashboard-sections">
         <section className="dashboard-panel">
           <h2>Recent Sales</h2>
-          <table className="dashboard-table">
+          <div className="table-scroll"><table className="dashboard-table">
             <thead><tr><th>Sale ID</th><th>Cashier</th><th>Total</th><th>Date</th></tr></thead>
             <tbody>
               {recentSales.map((sale) => <tr key={sale.saleId}>
@@ -55,12 +55,12 @@ const ManagerDashboard = ({ role }: ManagerDashboardProps) => {
               </tr>)}
               {recentSales.length === 0 && <tr><td colSpan={4} className="empty-table">No database sales have been recorded yet.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </section>
 
         <section className="dashboard-panel">
           <h2>Low-Stock Products</h2>
-          <table className="dashboard-table">
+          <div className="table-scroll"><table className="dashboard-table">
             <thead><tr><th>Product</th><th>Stock</th><th>Reorder Level</th><th>Status</th></tr></thead>
             <tbody>
               {lowStockProducts.map((product) => <tr key={product.productId}>
@@ -69,7 +69,7 @@ const ManagerDashboard = ({ role }: ManagerDashboardProps) => {
               </tr>)}
               {lowStockProducts.length === 0 && <tr><td colSpan={4} className="empty-table">No active products are currently low in stock.</td></tr>}
             </tbody>
-          </table>
+          </table></div>
         </section>
       </div>
     </div>

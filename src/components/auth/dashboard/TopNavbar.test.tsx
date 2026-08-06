@@ -43,4 +43,22 @@ describe("TopNavbar", () => {
       headers: expect.objectContaining({ Authorization: "Bearer admin-token" }),
     }));
   });
+
+  it("closes the profile menu when the user clicks elsewhere or presses Escape", async () => {
+    const user = userEvent.setup();
+    render(<MemoryRouter><TopNavbar user={manager} onToggleSidebar={jest.fn()} /></MemoryRouter>);
+
+    const profileButton = screen.getByRole("button", { name: /user profile/i });
+    await user.click(profileButton);
+    expect(screen.getByRole("menu")).toBeInTheDocument();
+    expect(profileButton).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("textbox", { name: /search products/i }));
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    await user.click(profileButton);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+    expect(profileButton).toHaveFocus();
+  });
 });

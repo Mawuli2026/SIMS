@@ -4,7 +4,7 @@ import { UserRole, SidebarItem } from "../../../types/dashboard.types";
 import { getSidebar } from "../../../services/dashboardApi";
 import { getAuthToken } from "../../../utils/authSession";
 
-interface SidebarProps { role: UserRole; isOpen: boolean; }
+interface SidebarProps { role: UserRole; isOpen: boolean; onNavigate?: () => void; }
 
 const managementItems: SidebarItem[] = [
   { label: "Dashboard", path: "/dashboard" },
@@ -27,7 +27,7 @@ const cashierItems: SidebarItem[] = [
   { label: "Sales History", path: "/dashboard/sales-history" },
 ];
 
-const Sidebar = ({ role, isOpen }: SidebarProps) => {
+const Sidebar = ({ role, isOpen, onNavigate }: SidebarProps) => {
   const fallbackItems = role === "SystemAdmin" ? systemAdminItems : role === "Manager" ? managementItems : cashierItems;
   const [menuItems, setMenuItems] = useState<SidebarItem[]>(fallbackItems);
 
@@ -59,6 +59,7 @@ const Sidebar = ({ role, isOpen }: SidebarProps) => {
       <nav className="sidebar-nav" aria-label={`${role} navigation`}>
         {menuItems.map((item) => (
           <NavLink key={item.path} to={item.path} end={item.path === "/dashboard"}
+            onClick={onNavigate}
             className={({ isActive }) => `sidebar-link${isActive ? " sidebar-link-active" : ""}`}
             title={!isOpen ? item.label : undefined}>
             <span className="sidebar-dot" aria-hidden="true" />

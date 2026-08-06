@@ -1,0 +1,145 @@
+.auth-page {
+  min-height: 100vh;
+  min-height: 100svh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: clamp(16px, 3vw, 32px) 20px;
+  overflow-y: auto;
+  background-image: url('/Sims-background.png');
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+}
+
+.auth-shell {
+  width: min(100%, 420px);
+  margin-block: auto;
+  padding: 22px;
+  border-radius: 20px;
+  background: linear-gradient(180deg, #0b1220 0%, #071033 100%);
+  color: #e6eef8;
+  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.6);
+}
+
+.auth-header {
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.auth-header h1 {
+  margin: 0;
+  color: #e6eef8;
+  font-size: clamp(26px, 6vw, 32px);
+  line-height: 1.2;
+  font-weight: 700;
+}
+
+.auth-header p {
+  margin: 8px 0 0;
+  color: #f97316;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.auth-card {
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #1f2937;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.password-field {
+  margin-bottom: 12px;
+}
+
+.password-label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.password-field--light .password-label {
+  color: #1f2937;
+}
+
+.password-field--dark .password-label {
+  color: #e6eef8;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input {
+  width: 100%;
+  min-width: 0;
+  padding: 11px 64px 11px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  outline: none;
+  background: #ffffff;
+  color: #111827;
+  font-size: 16px;
+}
+
+.password-input:focus {
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: #1d4ed8;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.password-toggle:focus-visible {
+  border-radius: 5px;
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+.password-error {
+  display: block;
+  margin-top: 6px;
+  color: #dc2626;
+  font-size: 14px;
+}
+
+@media (max-width: 480px) {
+  .auth-page {
+    padding: 12px;
+  }
+
+  .auth-shell {
+    padding: 18px 16px;
+    border-radius: 16px;
+  }
+
+  .auth-card {
+    padding: 14px;
+  }
+}
+
+@media (max-height: 680px) and (min-width: 481px) {
+  .auth-page {
+    padding-block: 14px;
+  }
+
+  .auth-shell {
+    padding-block: 18px;
+  }
+}

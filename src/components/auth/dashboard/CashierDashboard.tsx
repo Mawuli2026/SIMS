@@ -39,7 +39,7 @@ const CashierDashboard = ({ user }: CashierDashboardProps) => {
 
       <section className="dashboard-panel">
         <h2>My Recent Sales</h2>
-        <table className="dashboard-table">
+        <div className="table-scroll"><table className="dashboard-table">
           <thead><tr><th>Sale ID</th><th>Total</th><th>Date</th><th>Receipt</th></tr></thead>
           <tbody>
             {data.recentSales.map((sale) => <tr key={sale.saleId}>
@@ -49,7 +49,7 @@ const CashierDashboard = ({ user }: CashierDashboardProps) => {
             </tr>)}
             {data.recentSales.length === 0 && <tr><td colSpan={4} className="empty-table">No database sales have been recorded yet.</td></tr>}
           </tbody>
-        </table>
+        </table></div>
       </section>
     </div>
   );

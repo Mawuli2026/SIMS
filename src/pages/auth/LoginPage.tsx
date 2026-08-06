@@ -89,6 +89,7 @@ const LoginPage: React.FC = () => {
             showPassword={showPassword}
             onToggleShow={() => setShowPassword((prev) => !prev)}
             error={errors.password}
+            surface="dark"
           />
 
           <div style={styles.footerRow}>

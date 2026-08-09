@@ -3,6 +3,8 @@ import { PaginationMeta, PaginationOptions } from "../types/pagination.types";
 export const DEFAULT_PAGE_SIZE = 20;
 export const MAXIMUM_PAGE_SIZE = 100;
 
+// Query parameters are untrusted strings. Normalizing them here gives every
+// paginated endpoint the same safe defaults and download-size limit.
 const firstQueryValue = (value: unknown): string => {
   if (Array.isArray(value)) return firstQueryValue(value[0]);
   return typeof value === "string" ? value : "";

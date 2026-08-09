@@ -5,6 +5,7 @@ import { UserProfile } from "../../../types/dashboard.types";
 import { formatCurrency } from "../../../utils/currency";
 import { getAuthToken } from "../../../utils/authSession";
 import { completeSale as submitSale, getSaleProducts } from "../../../services/saleApi";
+import { NOTIFICATIONS_CHANGED_EVENT } from "../../../utils/notificationReadState";
 
 interface SalesCartProps { user: UserProfile; }
 
@@ -95,6 +96,9 @@ const SalesCart = ({ user }: SalesCartProps) => {
         } : product;
       }));
       setCart([]); setSelectedProductId(""); setQuantity(1);
+      // Notify the persistent navbar that checkout created a new sale. This
+      // updates the bell immediately without adding background API polling.
+      window.dispatchEvent(new Event(NOTIFICATIONS_CHANGED_EVENT));
 
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : "Unable to complete the sale.");

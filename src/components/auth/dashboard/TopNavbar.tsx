@@ -1,10 +1,15 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import ProfileDropdown from "./ProfileDropdown";
 import { NotificationItem, SearchResponse, UserProfile } from "../../../types/dashboard.types";
 import { getNotifications, searchDashboard } from "../../../services/dashboardApi";
 import { getAuthToken } from "../../../utils/authSession";
 import { formatCurrency } from "../../../utils/currency";
+import {
+  getReadNotificationIds,
+  NOTIFICATIONS_CHANGED_EVENT,
+  saveReadNotificationIds,
+} from "../../../utils/notificationReadState";
 
 interface TopNavbarProps {
   user: UserProfile;
@@ -20,19 +25,76 @@ const TopNavbar = ({ user, onToggleSidebar }: TopNavbarProps) => {
   const [isSearching, setIsSearching] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>([]);
   const [notificationError, setNotificationError] = useState("");
+  const notificationWrapperRef = useRef<HTMLDivElement>(null);
+  const notificationButtonRef = useRef<HTMLButtonElement>(null);
 
-  useEffect(() => {
+  const loadNotifications = useCallback(async () => {
     const token = getAuthToken();
     if (!token) return;
-    let active = true;
-    getNotifications(token).then((response) => {
-      if (active) setNotifications(response.notifications);
-    }).catch((error) => {
-      if (active) setNotificationError(error instanceof Error ? error.message : "Unable to load notifications.");
-    });
-    return () => { active = false; };
-  }, []);
+
+    try {
+      const response = await getNotifications(token);
+      const currentIds = new Set(response.notifications.map((notification) => notification.id));
+      // Remove IDs that are no longer returned so a future occurrence can be
+      // treated as new instead of leaving the browser's read list unbounded.
+      const retainedReadIds = getReadNotificationIds(user.id).filter((id) => currentIds.has(id));
+      setNotifications(response.notifications);
+      setReadNotificationIds(saveReadNotificationIds(user.id, retainedReadIds));
+      setNotificationError("");
+    } catch (error) {
+      setNotificationError(error instanceof Error ? error.message : "Unable to load notifications.");
+    }
+  }, [user.id]);
+
+  useEffect(() => {
+    void loadNotifications();
+    const refreshNotifications = () => void loadNotifications();
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotifications);
+    window.addEventListener("focus", refreshNotifications);
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_CHANGED_EVENT, refreshNotifications);
+      window.removeEventListener("focus", refreshNotifications);
+    };
+  }, [loadNotifications]);
+
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    const handleOutsideClick = (event: MouseEvent) => {
+      if (notificationWrapperRef.current && !notificationWrapperRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setShowNotifications(false);
+      notificationButtonRef.current?.focus();
+    };
+
+    document.addEventListener("mousedown", handleOutsideClick);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleOutsideClick);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [showNotifications]);
+
+  const unreadNotificationCount = notifications.filter(
+    (notification) => !readNotificationIds.includes(notification.id),
+  ).length;
+
+  useEffect(() => {
+    if (!showNotifications || notifications.length === 0) return;
+
+    // Anything visible in the open panel has been presented to the user, even
+    // when the API response arrived just after the bell was selected.
+    const readIds = saveReadNotificationIds(user.id, notifications.map((notification) => notification.id));
+    setReadNotificationIds(readIds);
+  }, [notifications, showNotifications, user.id]);
+
+  const toggleNotifications = () => setShowNotifications((isOpen) => !isOpen);
 
   const closeSearch = () => {
     setSearchResults(null);
@@ -96,13 +158,22 @@ const TopNavbar = ({ user, onToggleSidebar }: TopNavbarProps) => {
       </div>
 
       <div className="navbar-right">
-        <div className="notification-wrapper">
-          <button type="button" className="notification-button" onClick={() => setShowNotifications(!showNotifications)} aria-label="Notifications">
+        <div className="notification-wrapper" ref={notificationWrapperRef}>
+          <button
+            ref={notificationButtonRef}
+            type="button"
+            className="notification-button"
+            onClick={toggleNotifications}
+            aria-label={unreadNotificationCount ? `Notifications, ${unreadNotificationCount} unread` : "Notifications"}
+            aria-haspopup="true"
+            aria-expanded={showNotifications}
+            aria-controls="notification-panel"
+          >
             🔔
-            {notifications.length > 0 && <span className="notification-count">{notifications.length}</span>}
+            {unreadNotificationCount > 0 && <span className="notification-count" aria-hidden="true">{unreadNotificationCount}</span>}
           </button>
 
-          {showNotifications && <div className="notification-dropdown">
+          {showNotifications && <div className="notification-dropdown" id="notification-panel" aria-label="Notification list">
             <h4>Notifications</h4>
             {notificationError && <p className="form-error" role="alert">{notificationError}</p>}
             {!notificationError && notifications.length === 0 && <p className="empty-message">No notifications available.</p>}

@@ -231,6 +231,8 @@ export const createSaleWithClient = async (
   try {
     await client.query("BEGIN");
     const cashier = await getCashier(client, cashierId);
+    // Lock every selected product before validating prices and stock. The
+    // transaction prevents simultaneous checkouts from overselling inventory.
     const productsById = await lockProducts(client, input.items.map((item) => item.productId));
     const savedItems: SavedSaleItem[] = [];
     let totalInCents = 0;

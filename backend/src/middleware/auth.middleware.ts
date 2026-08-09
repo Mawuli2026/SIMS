@@ -45,6 +45,8 @@ export const authenticate = async (request: Request, response: Response, next: N
   }
 
   try {
+    // The JWT proves who originally signed in; this database lookup enforces
+    // current role, account status, password policy, and session revocation.
     const result = await query<AccountAccessRow>(
       "SELECT role, account_status, must_change_password, token_version FROM users WHERE id = $1 LIMIT 1",
       [id],

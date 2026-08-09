@@ -32,8 +32,11 @@ describe("TopNavbar", () => {
     render(<MemoryRouter><TopNavbar user={manager} onToggleSidebar={jest.fn()} /></MemoryRouter>);
 
     await waitFor(() => expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/dashboard/notifications"), expect.anything()));
-    await user.click(screen.getByRole("button", { name: /notifications/i }));
+    const notificationButton = await screen.findByRole("button", { name: /notifications, 1 unread/i });
+    await user.click(notificationButton);
     expect(await screen.findByText("Sugar is low in stock.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Notifications" })).toHaveAttribute("aria-expanded", "true");
+    expect(localStorage.getItem("sims-read-notifications:1")).toBe('["low-stock-1"]');
 
     const search = screen.getByRole("textbox", { name: /search products/i });
     await user.type(search, "Sugar{enter}");
@@ -42,6 +45,24 @@ describe("TopNavbar", () => {
     expect(fetch).toHaveBeenCalledWith(expect.stringContaining("/api/search?q=Sugar"), expect.objectContaining({
       headers: expect.objectContaining({ Authorization: "Bearer admin-token" }),
     }));
+  });
+
+  it("keeps read notifications cleared and closes the panel outside or with Escape", async () => {
+    localStorage.setItem("sims-read-notifications:1", '["low-stock-1"]');
+    const user = userEvent.setup();
+    render(<MemoryRouter><TopNavbar user={manager} onToggleSidebar={jest.fn()} /></MemoryRouter>);
+
+    const notificationButton = await screen.findByRole("button", { name: "Notifications" });
+    await user.click(notificationButton);
+    expect(screen.getByLabelText("Notification list")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("textbox", { name: /search products/i }));
+    expect(screen.queryByLabelText("Notification list")).not.toBeInTheDocument();
+
+    await user.click(notificationButton);
+    await user.keyboard("{Escape}");
+    expect(screen.queryByLabelText("Notification list")).not.toBeInTheDocument();
+    expect(notificationButton).toHaveFocus();
   });
 
   it("closes the profile menu when the user clicks elsewhere or presses Escape", async () => {

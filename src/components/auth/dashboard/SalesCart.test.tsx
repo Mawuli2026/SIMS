@@ -5,6 +5,7 @@ import SalesCart from "./SalesCart";
 import { AUTH_TOKEN_KEY } from "../../../utils/authSession";
 import { UserProfile } from "../../../types/dashboard.types";
 import { SaleProduct } from "../../../types/sale.types";
+import { NOTIFICATIONS_CHANGED_EVENT } from "../../../utils/notificationReadState";
 
 const userProfile: UserProfile = {
   id: 1, firstName: "Alicia", lastName: "Ng", fullName: "Alicia Ng", email: "admin@sims.com",
@@ -81,6 +82,8 @@ describe("SalesCart", () => {
   });
 
   it("submits product IDs and quantities and uses the server-created sale", async () => {
+    const notificationListener = jest.fn();
+    window.addEventListener(NOTIFICATIONS_CHANGED_EVENT, notificationListener, { once: true });
     jest.spyOn(global, "fetch").mockImplementation(async (_input, options) => {
       if (options?.method === "POST") return response({ message: "Sale completed successfully.", sale: savedSale }, 201);
       return response({ products });
@@ -104,6 +107,7 @@ describe("SalesCart", () => {
       body: JSON.stringify({ items: [{ productId: 3, quantity: 2 }] }),
     }));
     expect(localStorage.getItem("sims-sales")).toBeNull();
+    expect(notificationListener).toHaveBeenCalledTimes(1);
   });
 
   it("keeps the cart intact when the server rejects checkout for current stock", async () => {

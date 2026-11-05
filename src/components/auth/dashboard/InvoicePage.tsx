@@ -35,6 +35,8 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
   const [quantity, setQuantity] = useState(1);
   const [items, setItems] = useState<InvoiceDraftItem[]>([]);
   const [requestError, setRequestError] = useState("");
+  const [productsError, setProductsError] = useState("");
+  const [historyError, setHistoryError] = useState("");
   const [formError, setFormError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -49,14 +51,29 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
 
     setIsLoading(true);
     setRequestError("");
+    setProductsError("");
+    setHistoryError("");
     try {
       if (invoiceId !== undefined) {
         const response = await getInvoice(token, invoiceId);
         setInvoice(response.invoice);
       } else {
-        const [invoiceResponse, productResponse] = await Promise.all([getInvoices(token), getSaleProducts(token)]);
-        setInvoices(invoiceResponse.invoices);
-        setProducts(productResponse.products);
+        const [invoiceResult, productResult] = await Promise.allSettled([
+          getInvoices(token),
+          getSaleProducts(token),
+        ]);
+        if (invoiceResult.status === "fulfilled") {
+          setInvoices(invoiceResult.value.invoices);
+        } else {
+          setHistoryError(invoiceResult.reason instanceof Error
+            ? invoiceResult.reason.message : "Unable to load recent invoices.");
+        }
+        if (productResult.status === "fulfilled") {
+          setProducts(productResult.value.products);
+        } else {
+          setProductsError(productResult.reason instanceof Error
+            ? productResult.reason.message : "Unable to load active products.");
+        }
       }
     } catch (error) {
       setRequestError(error instanceof Error ? error.message : "Unable to load invoices.");
@@ -201,9 +218,11 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
 
       <section className="dashboard-panel">
         <h2>Add Products</h2>
+        {productsError && <div className="product-request-error" role="alert"><span>{productsError}</span>
+          <button className="secondary-button" type="button" onClick={() => void loadPageData()}>Retry</button></div>}
         <div className="sale-entry-form invoice-product-form">
           <label>Product<select aria-label="Invoice product" disabled={isLoading || isSaving} value={selectedProductId} onChange={(event) => { setSelectedProductId(event.target.value); setFormError(""); }}>
-            <option value="">{isLoading ? "Loading active products..." : "Select an active product"}</option>
+            <option value="">{isLoading ? "Loading active products..." : products.length > 0 ? "Select an active product" : "No active products available to invoice"}</option>
             {products.map((product) => <option key={product.id} value={product.id}>{product.name} — {formatCurrency(product.sellingPrice)} ({product.quantityInStock} in stock)</option>)}
           </select></label>
           <label>Quantity<input aria-label="Invoice quantity" type="number" min="1" disabled={isSaving} value={quantity} onChange={(event) => setQuantity(Number(event.target.value))} /></label>
@@ -235,6 +254,8 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
 
     <section className="dashboard-panel invoice-history-panel">
       <div className="cart-heading"><h2>Recent Invoices</h2><span>Up to 50 most recent</span></div>
+      {historyError && <div className="product-request-error" role="alert"><span>{historyError}</span>
+        <button className="secondary-button" type="button" onClick={() => void loadPageData()}>Retry</button></div>}
       <div className="table-scroll"><table className="dashboard-table">
         <thead><tr><th>Invoice</th><th>Customer</th><th>Prepared by</th><th>Date</th><th>Lines</th><th>Total</th><th></th></tr></thead>
         <tbody>
@@ -247,7 +268,7 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
             <td><strong>{formatCurrency(savedInvoice.totalAmount)}</strong></td>
             <td><Link className="table-link" to={`/dashboard/invoices/${savedInvoice.id}`}>View / Print</Link></td>
           </tr>)}
-          {!isLoading && !requestError && invoices.length === 0 && <tr><td colSpan={7} className="empty-table">No invoices have been generated yet.</td></tr>}
+          {!isLoading && !historyError && invoices.length === 0 && <tr><td colSpan={7} className="empty-table">No invoices have been generated yet.</td></tr>}
           {isLoading && <tr><td colSpan={7} className="empty-table">Loading invoices...</td></tr>}
         </tbody>
       </table></div>

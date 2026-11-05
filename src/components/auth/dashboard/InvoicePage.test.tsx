@@ -86,4 +86,20 @@ describe("InvoicePage", () => {
     await user.click(screen.getByRole("button", { name: "Print Invoice" }));
     expect(print).toHaveBeenCalledTimes(1);
   });
+
+  it("still loads products when recent invoice history is unavailable", async () => {
+    jest.mocked(fetch).mockImplementation(async (input, options) => {
+      const url = String(input);
+      if (url.endsWith("/api/invoices")) return response({ message: "Invoice storage is unavailable." }, 500);
+      if (url.endsWith("/api/sales/products")) {
+        return response({ products: [{ id: 3, name: "Rice", sellingPrice: 55, quantityInStock: 1 }] });
+      }
+      throw new Error(`Unexpected request: ${url} ${options?.method ?? "GET"}`);
+    });
+
+    render(<MemoryRouter><InvoicePage /></MemoryRouter>);
+
+    expect(await screen.findByRole("option", { name: /Rice/ })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent("Invoice storage is unavailable.");
+  });
 });

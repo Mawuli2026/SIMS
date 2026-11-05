@@ -31,6 +31,7 @@ Public account registration is not available. The first SystemAdmin is created d
 | Record a sale | Yes | Yes | Yes |
 | View all employees' sales and receipts | Yes | Yes | No |
 | View own sales and receipts | Yes | Yes | Yes |
+| Create, view, and print pro forma invoices | Yes | Yes | No |
 | View sales reports | Yes | Yes | No |
 | Change own password and view own profile | Yes | Yes | Yes |
 
@@ -127,7 +128,7 @@ Employee accounts are retained instead of deleted so historical sales preserve t
 
 #### Audit logs
 
-Open **Audit Logs** to review authentication outcomes, password actions, employee administration, product changes, and completed sales. Logs can be filtered by search text, action, outcome, and date. Passwords, JWTs, temporary passwords, and reset tokens are not stored in audit details.
+Open **Audit Logs** to review authentication outcomes, password actions, employee administration, product changes, completed sales, and generated invoices. Logs can be filtered by search text, action, outcome, and date. Passwords, JWTs, temporary passwords, and reset tokens are not stored in audit details.
 
 ### Manager guide
 
@@ -149,6 +150,15 @@ The Manager dashboard provides business-wide sales and inventory summaries witho
 3. Select **Save Changes**.
 
 Select **Deactivate** to remove a product from new sales without deleting it. Select **Activate** to make it available again. Completed receipts retain the product name and selling price recorded at the time of sale.
+
+#### Create a pro forma invoice
+
+1. Open **Invoices** and enter the customer's name; email and phone are optional.
+2. Select active products and quantities, then review the quoted prices and total.
+3. Select **Generate Pro Forma Invoice** to save the quote.
+4. Open the invoice from the confirmation or Recent Invoices list and select **Print Invoice**.
+
+Pro forma invoices use the current product prices and preserve those prices on the saved document. They are quotes only: generating one does not record a sale, reserve stock, or change inventory. Cashiers cannot access invoice creation or invoice records.
 
 #### Low stock and reports
 
@@ -223,4 +233,3 @@ Cashiers cannot manage products, view reports, manage employees, read audit logs
 - Use **Force logout** after suspected account exposure.
 - Review failed logins and administrative changes in Audit Logs.
 - Log out whenever leaving a shared device.
-

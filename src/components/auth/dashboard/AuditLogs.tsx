@@ -50,7 +50,7 @@ const AuditLogs = () => {
   return <div>
     <div className="page-header">
       <h1>Audit Logs</h1>
-      <p>Review authentication, employee, inventory, and sales security events.</p>
+      <p>Review authentication, employee, inventory, sales, and invoice events.</p>
     </div>
 
     <section className="dashboard-panel">
@@ -93,4 +93,3 @@ const AuditLogs = () => {
 };
 
 export default AuditLogs;
-

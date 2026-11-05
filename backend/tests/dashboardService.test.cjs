@@ -7,6 +7,7 @@ const managementSidebar = [
     { label: "Products", path: "/dashboard/products" },
     { label: "Sales", path: "/dashboard/sales" },
     { label: "Sales History", path: "/dashboard/sales-history" },
+    { label: "Invoices", path: "/dashboard/invoices" },
     { label: "Reports", path: "/dashboard/reports" },
     { label: "Low Stock", path: "/dashboard/low-stock" },
 ];

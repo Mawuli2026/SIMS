@@ -8,6 +8,7 @@ import ProductManagement from "../../components/auth/dashboard/ProductManagement
 import SalesCart from "../../components/auth/dashboard/SalesCart";
 import ReceiptPage from "../../components/auth/dashboard/ReceiptPage";
 import SalesHistory from "../../components/auth/dashboard/SalesHistory";
+import InvoicePage from "../../components/auth/dashboard/InvoicePage";
 import ReportsPage from "../../components/auth/dashboard/ReportsPage";
 import AuditLogs from "../../components/auth/dashboard/AuditLogs";
 import { UserProfile } from "../../types/dashboard.types";
@@ -58,8 +59,10 @@ const DashboardPage = () => {
   const isDashboardHome = location.pathname === "/dashboard" || location.pathname === "/dashboard/";
   const isEmployeeRoute = location.pathname === "/dashboard/employees";
   const isAuditRoute = location.pathname === "/dashboard/audit-logs";
+  const isInvoiceRoute = location.pathname === "/dashboard/invoices" || location.pathname.startsWith("/dashboard/invoices/");
   const cashierRoutes = ["/dashboard/sales", "/dashboard/sales-history", "/dashboard/receipts"];
-  const canAccessRoute = user.role !== "Cashier" || isDashboardHome || cashierRoutes.some((route) => location.pathname.startsWith(route));
+  const canAccessRoute = (user.role !== "Cashier" || isDashboardHome || cashierRoutes.some((route) => location.pathname.startsWith(route)))
+    && (!isInvoiceRoute || user.role !== "Cashier");
 
   if (!canAccessRoute || ((isEmployeeRoute || isAuditRoute) && user.role !== "SystemAdmin")) return <Navigate replace to="/dashboard" />;
 
@@ -71,6 +74,11 @@ const DashboardPage = () => {
     if (location.pathname === "/dashboard/low-stock") return <ProductManagement lowStockOnly />;
     if (location.pathname === "/dashboard/sales") return <SalesCart user={user} />;
     if (location.pathname === "/dashboard/sales-history") return <SalesHistory user={user} />;
+    if (location.pathname === "/dashboard/invoices") return <InvoicePage />;
+    if (location.pathname.startsWith("/dashboard/invoices/")) {
+      const invoiceId = Number(location.pathname.split("/").pop());
+      return <InvoicePage invoiceId={invoiceId} />;
+    }
     if (location.pathname === "/dashboard/reports") return <ReportsPage />;
     if (location.pathname.startsWith("/dashboard/receipts/")) {
       const saleId = Number(location.pathname.split("/").pop());

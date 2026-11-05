@@ -1,0 +1,67 @@
+.invoice-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.invoice-customer-fields {
+  display: grid;
+  gap: 14px;
+}
+
+.invoice-customer-fields label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-dark);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.invoice-customer-fields label span {
+  display: inline;
+  color: var(--text-light);
+  font-weight: 400;
+}
+
+.invoice-customer-fields input,
+.invoice-product-form input,
+.invoice-product-form select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+  font-size: 14px;
+}
+
+.invoice-product-form {
+  grid-template-columns: minmax(0, 1fr) 120px auto;
+}
+
+.invoice-stock-note {
+  margin: 12px 0 0;
+  color: var(--text-light);
+  font-size: 12px;
+}
+
+.invoice-items-panel {
+  grid-column: 1 / -1;
+}
+
+.invoice-history-panel {
+  margin-top: 20px;
+}
+
+@media (max-width: 768px) {
+  .invoice-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-items-panel {
+    grid-column: auto;
+  }
+
+  .invoice-product-form {
+    grid-template-columns: 1fr;
+  }
+}

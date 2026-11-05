@@ -18,6 +18,7 @@ export const auditActions = [
   "PRODUCT_UPDATED",
   "PRODUCT_STATUS_CHANGED",
   "SALE_COMPLETED",
+  "INVOICE_CREATED",
 ] as const;
 
 export type AuditAction = typeof auditActions[number];
@@ -51,4 +52,3 @@ export interface AuditLogFilters {
 export interface AuditLogsResponse {
   auditLogs: AuditLog[];
 }
-

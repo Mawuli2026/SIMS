@@ -18,6 +18,7 @@ export const AUDIT_ACTIONS = [
   "PRODUCT_UPDATED",
   "PRODUCT_STATUS_CHANGED",
   "SALE_COMPLETED",
+  "INVOICE_CREATED",
 ] as const;
 
 export type AuditAction = typeof AUDIT_ACTIONS[number];
@@ -31,7 +32,7 @@ export interface AuditEventInput extends AuditRequestContext {
   actorUserId?: number | null;
   targetUserId?: number | null;
   action: AuditAction;
-  entityType: "authentication" | "employee" | "product" | "sale";
+  entityType: "authentication" | "employee" | "product" | "sale" | "invoice";
   entityId?: string | number | null;
   outcome: AuditOutcome;
   details?: Record<string, string | number | boolean | null>;

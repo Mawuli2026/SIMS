@@ -105,6 +105,28 @@ export const createSaleSchema = z.object({
   }
 });
 
+export const createInvoiceSchema = z.object({
+  customerName: z.string().trim().min(1, "Customer name is required.").max(150, "Customer name must not exceed 150 characters."),
+  customerEmail: z.string().trim().max(150, "Customer email must not exceed 150 characters.")
+    .pipe(z.union([z.literal(""), z.email("Customer email must be valid.")])),
+  customerPhone: z.string().trim().max(50, "Customer phone must not exceed 50 characters."),
+  items: z.array(z.object({
+    productId: z.number({ message: "Product ID must be a number." })
+      .int("Product ID must be a whole number.")
+      .positive("Product ID must be a positive integer."),
+    quantity: z.number({ message: "Quantity must be a number." })
+      .int("Quantity must be a whole number.")
+      .positive("Quantity must be at least 1.")
+      .max(2_147_483_647, "Quantity is too large."),
+  })).min(1, "Add at least one product before generating an invoice.")
+    .max(100, "An invoice cannot contain more than 100 different products."),
+}).superRefine((values, context) => {
+  const productIds = values.items.map((item) => item.productId);
+  if (new Set(productIds).size !== productIds.length) {
+    context.addIssue({ code: "custom", message: "Each product may appear only once in an invoice.", path: ["items"] });
+  }
+});
+
 const reportDate = z.string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Report dates must use YYYY-MM-DD format.")
   .refine((value) => {

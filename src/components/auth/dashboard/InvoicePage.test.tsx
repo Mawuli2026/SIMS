@@ -83,8 +83,9 @@ describe("InvoicePage", () => {
     const print = jest.spyOn(window, "print").mockImplementation(() => {});
     render(<MemoryRouter><InvoicePage invoiceId={27} /></MemoryRouter>);
     await screen.findByText("SIMS-PF-00000027");
-    await user.click(screen.getByRole("button", { name: "Print Invoice" }));
+    await user.click(screen.getByRole("button", { name: "Print / Save PDF" }));
     expect(print).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Rice")).toBeInTheDocument();
   });
 
   it("still loads products when recent invoice history is unavailable", async () => {

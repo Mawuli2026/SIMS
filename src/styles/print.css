@@ -1,0 +1,101 @@
+.invoice-print-hint,
+.receipt-print-hint {
+  margin: -4px 0 16px;
+  color: var(--text-light);
+  font-size: 13px;
+}
+
+@media print {
+  @page {
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff !important;
+  }
+
+  body * {
+    visibility: hidden !important;
+  }
+
+  .receipt-container,
+  .receipt-container * {
+    visibility: visible !important;
+  }
+
+  .sidebar,
+  .top-navbar,
+  .no-print {
+    display: none !important;
+  }
+
+  .dashboard-shell,
+  .dashboard-main,
+  .dashboard-content,
+  .receipt-page {
+    display: block;
+    width: 100%;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: #fff;
+  }
+
+  .receipt-page {
+    position: absolute;
+    inset: 0;
+    max-width: none;
+  }
+
+  .receipt-container {
+    width: 100%;
+    overflow: visible;
+    border: 1px solid #d1d5db;
+    border-radius: 0;
+    box-shadow: none;
+    break-inside: auto;
+    page-break-inside: auto;
+  }
+
+  .receipt-header,
+  .receipt-meta,
+  .receipt-total,
+  .receipt-footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .receipt-header {
+    background: #fff;
+  }
+
+  .table-scroll {
+    overflow: visible !important;
+  }
+
+  .receipt-table {
+    width: 100%;
+    margin: 0;
+    border-collapse: collapse;
+  }
+
+  .receipt-table thead {
+    display: table-header-group;
+  }
+
+  .receipt-table tr {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .receipt-container,
+  .receipt-container * {
+    color: #111827 !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  .receipt-total {
+    background: #f3f4f6 !important;
+  }
+}

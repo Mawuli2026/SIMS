@@ -4,6 +4,7 @@ import { getSale } from "../../../services/saleApi";
 import { Sale } from "../../../types/sale.types";
 import { getAuthToken } from "../../../utils/authSession";
 import { formatCurrency } from "../../../utils/currency";
+import "../../../styles/print.css";
 
 interface ReceiptPageProps { saleId: number; }
 
@@ -58,8 +59,9 @@ const ReceiptPage = ({ saleId }: ReceiptPageProps) => {
     <div className="receipt-page">
       <div className="receipt-actions no-print">
         <Link className="secondary-button receipt-back" to="/dashboard/sales">Back to Sales</Link>
-        <button type="button" className="primary-button" onClick={() => window.print()}>Print Receipt</button>
+        <button type="button" className="primary-button" onClick={() => window.print()}>Print / Save PDF</button>
       </div>
+      <p className="no-print receipt-print-hint">To download a PDF, choose <strong>Save as PDF</strong> in your browser's print dialog.</p>
 
       <article className="receipt-container" aria-label={`Receipt ${sale.receiptNumber}`}>
         <header className="receipt-header">

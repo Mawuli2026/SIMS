@@ -7,6 +7,7 @@ import { SaleProduct } from "../../../types/sale.types";
 import { formatCurrency } from "../../../utils/currency";
 import { getAuthToken } from "../../../utils/authSession";
 import "../../../styles/invoice.css";
+import "../../../styles/print.css";
 
 interface InvoicePageProps {
   invoiceId?: number;
@@ -168,8 +169,9 @@ const InvoicePage = ({ invoiceId }: InvoicePageProps) => {
     return <div className="receipt-page">
       <div className="receipt-actions no-print">
         <Link className="secondary-button receipt-back" to="/dashboard/invoices">Back to Invoices</Link>
-        <button type="button" className="primary-button" onClick={() => window.print()}>Print Invoice</button>
+        <button type="button" className="primary-button" onClick={() => window.print()}>Print / Save PDF</button>
       </div>
+      <p className="no-print invoice-print-hint">To download a PDF, choose <strong>Save as PDF</strong> in your browser's print dialog.</p>
       <article className="receipt-container" aria-label={`Pro forma invoice ${invoice.invoiceNumber}`}>
         <header className="receipt-header">
           <picture>

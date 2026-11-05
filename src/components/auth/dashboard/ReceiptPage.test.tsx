@@ -49,8 +49,9 @@ describe("ReceiptPage", () => {
     render(<MemoryRouter><ReceiptPage saleId={sale.id} /></MemoryRouter>);
 
     await screen.findByText("SIMS-123456");
-    await user.click(screen.getByRole("button", { name: /print receipt/i }));
+    await user.click(screen.getByRole("button", { name: /print \/ save pdf/i }));
     expect(print).toHaveBeenCalledTimes(1);
+    expect(screen.getByText("Rice")).toBeInTheDocument();
   });
 
   it("handles a missing database receipt", async () => {
